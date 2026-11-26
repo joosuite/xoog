@@ -1,0 +1,50 @@
+name: Bug report
+description: Report a reproducible problem with Xoog.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For vulnerabilities, follow SECURITY.md instead of posting details here.
+        Replace account names, IDs, and private content with examples.
+        Use fictitious account data in screenshots. Never include client secrets or tokens.
+  - type: input
+    id: version
+    attributes:
+      label: Xoog, Node.js, and Joog versions
+      description: Run xoog --version, node --version, and joog --version, or provide the source commit.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system, shell, and terminal
+      placeholder: macOS, zsh, Terminal
+    validations:
+      required: true
+  - type: input
+    id: layout
+    attributes:
+      label: Terminal dimensions and theme
+      placeholder: 120 columns by 30 rows, dark theme
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include launch options, service, and the keys you press.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include errors or screenshots with private data removed.
+    validations:
+      required: true

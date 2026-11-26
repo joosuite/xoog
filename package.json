@@ -1,0 +1,45 @@
+{
+  "name": "xoog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Xoog, a React terminal workspace for Joog mail, calendar, tasks, People and Drive",
+  "type": "module",
+  "license": "Apache-2.0",
+  "files": [
+    "dist/",
+    "assets/",
+    "docs/",
+    "README.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "bin": {
+    "xoog": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.tsx",
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts test/*.test.tsx"
+  },
+  "dependencies": {
+    "html-to-text": "^9.0.5",
+    "ink": "^6.8.0",
+    "react": "^19.2.0",
+    "wrap-ansi": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "ink-testing-library": "^4.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

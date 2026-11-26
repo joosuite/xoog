@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a terminal workflow, keyboard interaction, or service improvement.
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: What are you trying to do?
+      description: Describe the task and the limitation you encountered.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the interaction and keyboard shortcuts using fictitious account data.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mention existing shortcuts, Joog commands, or workarounds you tried.
