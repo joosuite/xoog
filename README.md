@@ -22,7 +22,8 @@ Extract the entire archive, then run `./xoog` on macOS or Linux, or
 `.\xoog.exe` on Windows.
 See [installation and checksums](docs/releases.md).
 
-The first binary release is for macOS Intel. Other platforms can run from source.
+Binary releases are available for macOS Intel and Apple Silicon, Linux x64 and
+ARM64 with glibc, and Windows x64, with or without Joog and Joom included.
 
 To run from source:
 

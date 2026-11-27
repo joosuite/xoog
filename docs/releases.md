@@ -4,9 +4,9 @@ Download an archive from [Xoog releases](https://github.com/joosuite/xoog/releas
 Each archive contains a standalone executable. You do not need an npm account,
 npm, or a separate Node.js installation.
 
-The first binary release provides macOS Intel archives. Other platforms can use
-the [source instructions](../README.md#run). Asset availability is listed on each
-release page.
+Both editions are available for macOS Intel and Apple Silicon, Linux x64 and
+ARM64 with glibc, and Windows x64. Each release page links to the downloads and
+their checksums.
 
 Choose the archive for your computer:
 
