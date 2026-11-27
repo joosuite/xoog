@@ -1,7 +1,8 @@
 # <img src="assets/brand/logo.png" alt="Xoog" width="360">
 
 Mail, calendar, tasks, contacts, and files in a React terminal app. Xoog runs
-**Joog** for Google and **Joom** for Microsoft as subprocesses and reads their JSON
+[Joog](https://github.com/joosuite/joog) for Google and
+[Joom](https://github.com/joosuite/joom) for Microsoft as subprocesses and reads their JSON
 output. Releases can include both backends, or you can use your installed binaries.
 
 Xoog is an independent open-source project and is not affiliated with, endorsed
