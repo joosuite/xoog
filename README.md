@@ -1,9 +1,8 @@
 # <img src="assets/brand/logo.png" alt="Xoog" width="360">
 
-Mail, calendar, tasks, contacts, and files in a React terminal app. Xoog runs
+Mail, calendar, tasks, contacts, and files in a React terminal app. Xoog uses
 [Joog](https://github.com/joosuite/joog) for Google and
-[Joom](https://github.com/joosuite/joom) for Microsoft as subprocesses and reads their JSON
-output. Releases can include both backends, or you can use your installed binaries.
+[Joom](https://github.com/joosuite/joom) for Microsoft.
 
 Xoog is an independent open-source project and is not affiliated with, endorsed
 by, or sponsored by Google or Microsoft. It is provided "as is" under the
@@ -20,7 +19,7 @@ See [accounts, calendar, tasks, People, Drive, and terminal screenshots](docs/sc
 | --- | --- | --- |
 | GitHub binary, Xoog only | Not needed | Install the backend you use |
 | GitHub binary, `with-backends` | Not needed | Both included |
-| npm package, planned | Node.js 22 or newer | Install the backend you use |
+| npm package `xoogjs` | Node.js 22 or newer | Install the backend you use |
 
 ### Binary downloads
 
@@ -42,17 +41,15 @@ See [installation and checksums](docs/releases.md).
 
 ### npm
 
-A standalone `xoog` package is planned for npm. Once published, install and run
-it with Node.js 22 or newer:
+Install [xoogjs](https://www.npmjs.com/package/xoogjs) with Node.js 22 or newer:
 
 ```sh
-npm install --global xoog
+npm install --global xoogjs
 xoog
 ```
 
-The npm package contains Xoog only. Install [Joog](https://github.com/joosuite/joog)
-for Google or [Joom](https://github.com/joosuite/joom) for Microsoft separately
-and put the backend on `PATH`.
+Install [Joog](https://github.com/joosuite/joog) for Google or
+[Joom](https://github.com/joosuite/joom) for Microsoft and put it on `PATH`.
 
 ### Run from source
 

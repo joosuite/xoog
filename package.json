@@ -1,8 +1,7 @@
 {
-  "name": "xoog",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Xoog, a React terminal workspace for Google through Joog and Microsoft through Joom",
+  "name": "xoogjs",
+  "version": "0.1.1",
+  "description": "Xoog, Google and Microsoft services in a TUI",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
