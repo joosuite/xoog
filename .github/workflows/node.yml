@@ -35,5 +35,3 @@ jobs:
       - run: npm run build
       - name: Check CLI
         run: node dist/cli.js --help
-      - name: Inspect package
-        run: npm pack --dry-run

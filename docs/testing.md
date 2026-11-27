@@ -54,20 +54,3 @@ For documentation images, use [the reproducible screenshot capture](../assets/sc
 All published screenshots use a fictitious account and synthetic content.
 The fixture adapters under `test/support/` are used only by tests. The screenshot
 tooling has separate read-only data. Neither is part of the compiled app.
-
-## Check the distributable
-
-After building, inspect the package without publishing it:
-
-```sh
-npm pack --dry-run
-```
-
-`npm pack` creates a tarball with the compiled CLI, brand assets, screenshots,
-documentation, community files, and license. It includes neither dependencies
-nor credentials. Consumers still need Node.js and npm to install its runtime
-dependencies. Joog is installed separately for live use.
-
-The release workflow validates the tagged source, creates that npm tarball and
-a SHA-256 checksum, and uploads workflow artifacts. It does not publish to npm
-or create a GitHub release.

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {act} from 'react';
 import {test, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {render, cleanup} from 'ink-testing-library';
@@ -9,6 +9,13 @@ import {type ReadOptions} from '../src/model.js';
 
 afterEach(cleanup);
 async function settle() {await pause(100);}
+async function input(app: ReturnType<typeof render>, text: string) {
+  const environment = globalThis as typeof globalThis & {IS_REACT_ACT_ENVIRONMENT?: boolean};
+  const previous = environment.IS_REACT_ACT_ENVIRONMENT;
+  environment.IS_REACT_ACT_ENVIRONMENT = true;
+  try {await act(async () => {app.stdin.write(text); await settle();});}
+  finally {environment.IS_REACT_ACT_ENVIRONMENT = previous;}
+}
 async function until(app: ReturnType<typeof render>, pattern: RegExp) {
   for (let i = 0; i < 80 && !pattern.test(app.lastFrame() ?? ''); i++) await pause(25);
   assert.match(app.lastFrame()!, pattern);
@@ -71,7 +78,7 @@ test('f forces current reads once across all services while g keeps the TTL and 
   }
   const api = new Observed(), app = render(<App api={api} account="test@example.com" size={{columns: 100, rows: 30}}/>);
   await until(app, /Saturday at ours/);
-  const press = async (key: string) => {app.stdin.write(key); await settle();};
+  const press = async (key: string) => input(app, key);
   const checkRefresh = async (names: string[]) => {
     api.reads = []; await press('f');
     assert.deepEqual(api.reads.map(read => read.name).sort(), names.slice().sort());
@@ -95,7 +102,7 @@ test('f forces current reads once across all services while g keeps the TTL and 
 test('task creation and timed event creation pass reviewed fields to the adapter', async () => {
   const api = new FakeWorkspace();
   const app = render(<App api={api} account="test@example.com" size={{columns: 100, rows: 34}}/>);
-  const press = async (text: string) => {app.stdin.write(text); await settle();};
+  const press = async (text: string) => input(app, text);
   await until(app, /Saturday at ours/); await press('3'); await press('n');
   await press('A reviewed task'); await press('\t'); await press('2026-12-01'); await press('\t'); await press('Task note');
   await press('\x13'); assert.match(app.lastFrame()!, /Review · Create task/); await press('\r');

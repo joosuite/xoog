@@ -2,7 +2,7 @@
 
 Mail, calendar, tasks, contacts, and files in a React terminal app. Xoog runs
 **Joog** for Google and **Joom** for Microsoft as subprocesses and reads their JSON
-output. Install the backend you use separately or point Xoog at its binary.
+output. Releases can include both backends, or you can use your installed binaries.
 
 Xoog is an independent open-source project and is not affiliated with, endorsed
 by, or sponsored by Google or Microsoft. It is provided "as is" under the
@@ -14,6 +14,17 @@ The screenshots use a fictitious Google account and synthetic content.
 See [accounts, calendar, tasks, People, Drive, and terminal screenshots](docs/screenshots.md).
 
 ## Run
+
+Download a [binary release](https://github.com/joosuite/xoog/releases) for your
+operating system and architecture. Choose `with-backends` to include Joog and
+Joom. Both editions contain a standalone executable. No separate runtime installation is needed.
+Extract the entire archive, then run `./xoog` on macOS or Linux, or
+`.\xoog.exe` on Windows.
+See [installation and checksums](docs/releases.md).
+
+The first binary release is for macOS Intel. Other platforms can run from source.
+
+To run from source:
 
 Use Node.js 22 or newer and install Joog for Google or Joom for Microsoft. From this directory:
 
@@ -34,7 +45,7 @@ npm start -- --backend joom --joom /path/to/joom
 ```
 
 Xoog checks each explicit binary option, then `JOOG_BIN` or `JOOM_BIN`, then
-`PATH`, and finally its optional sibling development binary. `--joom PATH`
+`PATH`, its bundled binary, and finally its optional sibling development binary. `--joom PATH`
 selects Microsoft initially unless `--backend` chooses another provider.
 The backends own sign-in, token refresh, and encrypted credentials. Xoog imports
 neither backend's source code.

@@ -42,6 +42,8 @@ export function parseBinaryOutput(stdout: string, operation: string): Raw {
   }
 }
 
+declare const XOOG_COMPILED: boolean;
+const compiled = typeof XOOG_COMPILED !== 'undefined' && XOOG_COMPILED;
 export async function findBinary(explicit?: string, searchPath = process.env.PATH ?? '', backend: BackendId = 'joog'): Promise<string> {
   if (explicit) return explicit;
   const executable = process.platform === 'win32' ? `${backend}.exe` : backend;
@@ -49,8 +51,10 @@ export async function findBinary(explicit?: string, searchPath = process.env.PAT
     const candidate = resolve(directory, executable);
     try {await access(candidate, process.platform === 'win32' ? constants.F_OK : constants.X_OK); if ((await stat(candidate)).isFile()) return candidate;} catch {}
   }
-  const local = resolve(dirname(fileURLToPath(import.meta.url)), '../..', backend, 'bin', executable);
-  try { await access(local); return local; } catch { return executable; }
+  const candidate = compiled ? resolve(dirname(process.execPath), executable)
+    : resolve(dirname(fileURLToPath(import.meta.url)), '../..', backend, 'bin', executable);
+  try {await access(candidate, process.platform === 'win32' ? constants.F_OK : constants.X_OK); if ((await stat(candidate)).isFile()) return candidate;} catch {}
+  return executable;
 }
 export class Joog implements Workspace {
   readonly backend: BackendId = 'joog';

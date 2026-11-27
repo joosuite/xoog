@@ -8,13 +8,18 @@ import {Joom} from './joom.js';
 import {clean} from './model.js';
 import {setTheme} from './theme.js';
 import {parseOptions} from './cli-options.js';
+import {readFileSync} from 'node:fs';
+
+declare const XOOG_VERSION: string;
+const version = typeof XOOG_VERSION === 'string' ? XOOG_VERSION
+  : (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {version: string}).version;
 
 const help = `Xoog · mail, calendar, tasks, People, and Drive in your terminal
 
 Usage: xoog [options]
 
-  --joog PATH         Joog executable; defaults to JOOG_BIN, PATH, or a sibling binary
-  --joom PATH         Joom executable; defaults to JOOM_BIN, PATH, or a sibling binary
+  --joog PATH         Joog executable; overrides JOOG_BIN and automatic discovery
+  --joom PATH         Joom executable; overrides JOOM_BIN and automatic discovery
   --backend NAME      Initial provider: joog (default) or joom
   --home PATH         Forward a custom state directory to both backends
   --ttl MINUTES       Reuse cached responses (default: 5; 0 disables caching)
@@ -30,14 +35,14 @@ T tests authentication, L logs in, and X logs out the selected account.
 Press 1 for Google or 2 for Microsoft on the account screen.
 Press A in the workspace to return to accounts.
 
-Xoog uses Joog and Joom binaries. Node.js 22+ required.
+Xoog uses Joog and Joom binaries. Standalone releases need no Node.js installation.
 Press ? inside the app for keyboard shortcuts.
 `;
 
 async function main() {
   const values = parseOptions();
   if (values.help) {process.stdout.write(help); return;}
-  if (values.version) {process.stdout.write('xoog 0.1.0\n'); return;}
+  if (values.version) {process.stdout.write(`xoog ${version}\n`); return;}
   if (values.theme !== 'dark' && values.theme !== 'light') throw new Error('--theme must be dark or light.');
   setTheme(values.theme);
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error('Xoog needs an interactive terminal. Use --help for usage.');

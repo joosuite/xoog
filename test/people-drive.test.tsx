@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {act} from 'react';
 import {test, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {render, cleanup} from 'ink-testing-library';
@@ -16,7 +16,13 @@ async function until(app: ReturnType<typeof render>, pattern: RegExp) {
   for (let i = 0; i < 100 && !pattern.test(app.lastFrame() ?? ''); i++) await pause(25);
   assert.match(app.lastFrame()!, pattern); await pause(50);
 }
-async function press(app: ReturnType<typeof render>, key: string) {app.stdin.write(key); await pause(100);}
+async function press(app: ReturnType<typeof render>, key: string) {
+  const environment = globalThis as typeof globalThis & {IS_REACT_ACT_ENVIRONMENT?: boolean};
+  const previous = environment.IS_REACT_ACT_ENVIRONMENT;
+  environment.IS_REACT_ACT_ENVIRONMENT = true;
+  try {await act(async () => {app.stdin.write(key); await pause(100);});}
+  finally {environment.IS_REACT_ACT_ENVIRONMENT = previous;}
+}
 
 test('People searches contact fields, shows details, and selects Starred and Other contacts', async () => {
   const app = render(<App api={new FakeWorkspace()} account="test@example.com" size={{columns: 140, rows: 36}}/>);
