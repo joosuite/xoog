@@ -1,4 +1,4 @@
-import {dayKey, shiftDay, normalizePerson, normalizeFile, type DriveFile, type Workspace, type Mail, type Attachment, type Event, type Task, type MailDraft, type EventDraft, type TaskDraft} from '../../src/model.js';
+import {dayKey, shiftDay, normalizePerson, normalizeFile, type Page, type Person, type DriveFile, type Workspace, type Mail, type Attachment, type Event, type Task, type MailDraft, type EventDraft, type TaskDraft} from '../../src/model.js';
 import {decodeAttachmentData, writeNewAttachment} from '../../src/attachment-files.js';
 
 export class FakeWorkspace implements Workspace {
@@ -66,10 +66,10 @@ export class FakeWorkspace implements Workspace {
       {id: "task-5", title: "Measure the shelf again", notes: "Alain says 82 cm. Check the skirting board before ordering.", due: '', completed: false, list: 'personal'},
     ];
   }
-  async mail(folder: string, query: string) {
-    return structuredClone(this.messages.filter(m => (folder === 'all' || (folder === 'unread' ? m.unread : folder === 'starred' ? m.starred : m.folder === folder)) && `${m.subject} ${m.from} ${m.body}`.toLowerCase().includes(query.toLowerCase())));
+  async mail(folder: string, query: string): Promise<Page<Mail>> {
+    return {items: structuredClone(this.messages.filter(m => (folder === 'all' || (folder === 'unread' ? m.unread : folder === 'starred' ? m.starred : m.folder === folder)) && `${m.subject} ${m.from} ${m.body}`.toLowerCase().includes(query.toLowerCase())))};
   }
-  async message(id: string) { const mail = this.messages.find(m => m.id === id); if (!mail) throw new Error('Message not found.'); return structuredClone(mail); }
+  async message(id: string): Promise<Mail> { const mail = this.messages.find(m => m.id === id); if (!mail) throw new Error('Message not found.'); return structuredClone(mail); }
   async downloadAttachment(_message: string, attachment: Attachment, destination: string, signal?: AbortSignal) {
     if (attachment.data === undefined) throw new Error('No attachment data in this fixture.');
     await writeNewAttachment(destination, decodeAttachmentData(attachment.data), signal);
@@ -84,23 +84,23 @@ export class FakeWorkspace implements Workspace {
     this.messages.unshift({id: `sent-${Date.now()}`, threadId: '', subject: draft.subject, from: 'test@example.com', to: draft.to, replyTo: 'test@example.com', messageId: '', date: new Date().toISOString(), snippet: draft.body, body: draft.body, unread: false, starred: false, folder: 'sent'});
   }
   async calendars() { return [{id: 'primary', title: 'My calendar'}, {id: 'personal', title: 'Personal'}]; }
-  async events(calendar: string, day: Date, query: string) {
+  async events(calendar: string, day: Date, query: string): Promise<Page<Event>> {
     const start = dayKey(day), end = dayKey(shiftDay(day, 7));
-    return structuredClone(this.agenda.filter(e => e.calendar === calendar && (e.allDay ? e.end > start : new Date(e.end) > new Date(`${start}T00:00:00`)) && (e.allDay ? e.start < end : new Date(e.start) < new Date(`${end}T00:00:00`)) && e.title.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.start.localeCompare(b.start)));
+    return {items: structuredClone(this.agenda.filter(e => e.calendar === calendar && (e.allDay ? e.end > start : new Date(e.end) > new Date(`${start}T00:00:00`)) && (e.allDay ? e.start < end : new Date(e.start) < new Date(`${end}T00:00:00`)) && e.title.toLowerCase().includes(query.toLowerCase())).sort((a, b) => a.start.localeCompare(b.start)))};
   }
   async createEvent(calendar: string, draft: EventDraft) { this.agenda.push({id: `event-${Date.now()}`, ...draft, allDay: false, attendees: [], calendar}); }
   async tasklists() { return [{id: '@default', title: 'My tasks'}, {id: 'personal', title: 'Personal'}]; }
-  async tasks(list: string) { return structuredClone(this.todos.filter(t => t.list === list)); }
+  async tasks(list: string): Promise<Page<Task>> { return {items: structuredClone(this.todos.filter(t => t.list === list))}; }
   async complete(list: string, task: Task) { const t = this.todos.find(v => v.id === task.id && v.list === list); if (t) t.completed = !t.completed; }
-  async people(collection: string) {
+  async people(collection: string): Promise<Page<Person>> {
     const people = [normalizePerson({resourceName: 'people/jeanne', names: [{displayName: 'Jeanne Fleury'}], emailAddresses: [{value: 'jeanne.fleury@example.com'}], phoneNumbers: [{value: '+33 6 12 34 56 78'}], addresses: [{formattedValue: '18 rue des Lilas, Lille'}], biographies: [{value: 'Ring the downstairs bell.'}], memberships: [{contactGroupMembership: {contactGroupResourceName: 'contactGroups/starred'}}]}),
       normalizePerson({resourceName: 'people/bernard', names: [{displayName: 'Bernard Lemaire'}], emailAddresses: [{value: 'bernard.lemaire@example.com'}]})];
-    return collection === 'other' ? [] : people.filter(person => collection !== 'starred' || person.starred);
+    return {items: collection === 'other' ? [] : people.filter(person => collection !== 'starred' || person.starred)};
   }
-  async files(collection: string, folder: string | undefined, query: string) {
+  async files(collection: string, folder: string | undefined, query: string): Promise<Page<DriveFile>> {
     const files = folder ? [{id: 'invoice', name: 'Invoice 114.pdf', mimeType: 'application/pdf', size: '692', modifiedTime: '2026-11-26T10:00:00Z', description: 'November repairs'}]
       : [{id: 'receipts', name: 'Receipts', mimeType: 'application/vnd.google-apps.folder'}, {id: 'shopping', name: 'Shopping list', mimeType: 'application/vnd.google-apps.document', starred: true}];
-    return files.map(normalizeFile).filter(file => (collection !== 'starred' || file.starred) && file.title.toLowerCase().includes(query.toLowerCase()));
+    return {items: files.map(normalizeFile).filter(file => (collection !== 'starred' || file.starred) && file.title.toLowerCase().includes(query.toLowerCase()))};
   }
   async downloadFile(_file: DriveFile, destination: string, signal?: AbortSignal) {await writeNewAttachment(destination, Buffer.from('File content'), signal);}
   async createTask(list: string, draft: TaskDraft) { this.todos.push({id: `task-${Date.now()}`, ...draft, completed: false, list}); }

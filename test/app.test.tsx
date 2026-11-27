@@ -24,10 +24,10 @@ async function until(app: ReturnType<typeof render>, pattern: RegExp) {
 test('keyboard navigation switches services, completes tasks and selects collections', async () => {
   const app = render(<App api={new FakeWorkspace()} account="test@example.com" size={{columns: 140, rows: 36}}/>);
   await until(app, /Saturday at ours/);
-  app.stdin.write('2'); await until(app, /Pick up the car/);
-  app.stdin.write('3'); await until(app, /\[ \] Find the car collection slip/);
-  app.stdin.write(' '); await until(app, /\[x\] Find the car collection slip/);
-  app.stdin.write('h'); await settle(); app.stdin.write('j'); await settle(); app.stdin.write('\r');
+  await input(app, '2'); await until(app, /Pick up the car/);
+  await input(app, '3'); await until(app, /\[ \] Find the car collection slip/);
+  await input(app, ' '); await until(app, /\[x\] Find the car collection slip/);
+  await input(app, 'h'); await input(app, 'j'); await input(app, '\r');
   await until(app, /Measure the shelf again/);
 });
 test('search accepts spaces and escape clears the applied query', async () => {
@@ -52,9 +52,9 @@ test('drafts require review and save through the workspace adapter', async () =>
   app.stdin.write('First line'); await until(app, /First line/); app.stdin.write('\r'); await settle();
   app.stdin.write('Second line'); await until(app, /Second line/);
   app.stdin.write('\x13'); await until(app, /Review · Send message/);
-  assert.equal((await api.mail('sent', 'A test subject')).length, 0);
+  assert.equal((await api.mail('sent', 'A test subject')).items.length, 0);
   app.stdin.write('\r'); await until(app, /Message sent/);
-  const sent = await api.mail('sent', 'A test subject');
+  const {items: sent} = await api.mail('sent', 'A test subject');
   assert.equal(sent.length, 1); assert.equal(sent[0]?.body, 'First line\nSecond line');
 });
 test('collection failures are recoverable with refresh', async () => {
@@ -106,11 +106,11 @@ test('task creation and timed event creation pass reviewed fields to the adapter
   await until(app, /Saturday at ours/); await press('3'); await press('n');
   await press('A reviewed task'); await press('\t'); await press('2026-12-01'); await press('\t'); await press('Task note');
   await press('\x13'); assert.match(app.lastFrame()!, /Review · Create task/); await press('\r');
-  assert.ok((await api.tasks('@default')).find(t => t.title === 'A reviewed task' && t.due === '2026-12-01'));
+  assert.ok((await api.tasks('@default')).items.find(t => t.title === 'A reviewed task' && t.due === '2026-12-01'));
   await until(app, /Task created/);
   await press('2'); await until(app, /xoog \/ Calendar/); await press('n'); await press('A reviewed event');
   await press('\t'); await press('\x05'); await press('\x15'); await press('2026-12-01T09:00:00Z');
   await press('\t'); await press('\x05'); await press('\x15'); await press('2026-12-01T10:00:00Z');
   await press('\x13'); assert.match(app.lastFrame()!, /Review · Create event/); await press('\r');
-  assert.ok((await api.events('primary', new Date('2026-12-01T12:00:00Z'), '')).find(e => e.title === 'A reviewed event'));
+  assert.ok((await api.events('primary', new Date('2026-12-01T12:00:00Z'), '')).items.find(e => e.title === 'A reviewed event'));
 });

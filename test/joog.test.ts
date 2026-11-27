@@ -45,7 +45,7 @@ else console.log('{}');
 
 test('binary adapter uses private JSON files, explicit account and the public command names', {skip: process.platform === 'win32'}, async t => {
   const {client, calls} = await fixture(t);
-  const mail = await client.mail('inbox', 'from:jeanne'); assert.equal(mail[0]?.subject, 'Hello');
+  const {items: mail} = await client.mail('inbox', 'from:jeanne'); assert.equal(mail[0]?.subject, 'Hello');
   await client.calendars();
   await client.events('primary', new Date('2026-11-25T12:00:00Z'), 'planning');
   const log = await calls();
@@ -55,8 +55,9 @@ test('binary adapter uses private JSON files, explicit account and the public co
   assert.equal(log[0].mode, 0o600);
   await assert.rejects(stat(log[0].file), {code: 'ENOENT'});
   assert.ok(log[2].args.includes('calendars.list'));
-  assert.equal(log[3].params.calendar, 'primary'); assert.equal(log[3].params.query, 'planning');
-  assert.ok(log[3].params.from); assert.ok(log[3].params.until);
+  assert.equal(log[3].params.calendarId, 'primary'); assert.equal(log[3].params.q, 'planning');
+  assert.ok(log[3].args.includes('events.list'));
+  assert.ok(log[3].params.timeMin); assert.ok(log[3].params.timeMax);
   assert.ok(log.every(call => call.params.ttl === 5));
 });
 test('writes preserve labels, task state, MIME reply headers and calendar boundaries', {skip: process.platform === 'win32'}, async t => {
@@ -81,7 +82,7 @@ test('writes preserve labels, task state, MIME reply headers and calendar bounda
 });
 test('task listings combine JSON pages, tolerate empty pages, and filter deleted tasks', {skip: process.platform === 'win32'}, async t => {
   const {client} = await fixture(t);
-  const tasks = await client.tasks('list');
+  const {items: tasks} = await client.tasks('list');
   assert.deepEqual(tasks.map(task => [task.id, task.title, task.completed]), [
     ['first', 'Find the collection slip', false], ['second', 'Forward invoice 114', true],
   ]);
@@ -143,10 +144,10 @@ test('an installed Joog executable takes priority over the sibling development b
 
 test('People and Drive use native binary commands, combine pages, and escape Drive search literals', {skip: process.platform === 'win32'}, async t => {
   const {client, calls} = await fixture(t);
-  assert.deepEqual((await client.people('contacts')).map(person => person.title), ['Jeanne Fleury', 'Bernard Lemaire']);
-  assert.deepEqual((await client.people('starred')).map(person => person.title), ['Jeanne Fleury']);
-  assert.equal((await client.people('other'))[0]?.title, 'Garage des Acacias');
-  const files = await client.files('root', undefined, "Odile's \\ invoice");
+  assert.deepEqual((await client.people('contacts')).items.map(person => person.title), ['Jeanne Fleury', 'Bernard Lemaire']);
+  assert.deepEqual((await client.people('starred')).items.map(person => person.title), ['Jeanne Fleury']);
+  assert.equal((await client.people('other')).items[0]?.title, 'Garage des Acacias');
+  const {items: files} = await client.files('root', undefined, "Odile's \\ invoice");
   assert.equal(files[1]?.size, 692);
   await client.files('shared', undefined, '');
   await client.files('recent', 'folder-id', '');

@@ -43,10 +43,22 @@ can omit their collection. A malformed page rejects the whole result, so the UI
 does not display incomplete data as a successful request. Parse errors identify
 the operation without echoing private output or prescribing a binary update.
 
-Mail listings fetch up to 40 message IDs, then retrieve metadata in batches of
-four subprocesses. The reader requests the full selected message separately.
+Mail, events, tasks, contacts, and files return `Page<T>` results with items and
+an optional opaque continuation cursor. Each request uses `maxPages: 1` and a
+provider page size, without an overall `max` limit. Mail retrieves metadata in
+batches of four subprocesses. The reader requests the full selected message separately.
 Requests for a previous selection or collection receive an abort signal when
-the selection changes.
+the selection changes. `use-paged-list.ts` appends pages near the end of the
+visible list, deduplicates by item ID, and rejects repeated cursors. Empty or
+locally filtered pages still advance their cursor. Task and contact searches
+fetch further pages when the visible matches run short.
+
+Reloads revisit the pages already browsed and preserve selection by ID. Forced
+refresh bypasses the cache for those pages; newly visited pages use the normal
+TTL. A failed next-page request preserves loaded rows and offers a retry.
+Collection, folder, date, and remote search changes abort the previous session.
+Calendar and task-list choices use the backend's automatic pagination without
+an overall item cap.
 
 ## Commands
 
@@ -61,7 +73,7 @@ the selection changes.
 | Read, star, archive | `mail messages.modify` |
 | Compose and reply | `mail messages.send` |
 | Calendar selection | `calendar calendars.list` |
-| Seven-day agenda | `calendar events` |
+| Seven-day agenda | `calendar events.list` |
 | Create an event | `calendar events.insert` |
 | Task list selection | `tasks tasklists.list` |
 | Load tasks | `tasks tasks.list` |
@@ -176,9 +188,10 @@ People reads the selected contacts collection through Joog's paginated output.
 Contact fields include names, emails, phones, addresses, organizations, birthdays,
 websites, biographies, and memberships. Starred filters the contacts' membership
 in `contactGroups/starred`. Other contacts use their supported read mask of names,
-emails, and phone numbers. Search filters the loaded contact fields locally.
+emails, and phone numbers. Search filters contact fields locally and continues
+into later pages when more matches are needed.
 
-Drive lists up to 200 files in My Drive, Recent, Starred, Shared with me, or the
+Drive pages through files in My Drive, Recent, Starred, Shared with me, or the
 current folder. Request fields include pagination, metadata, download permissions,
 and shortcut targets. Search escapes backslashes and quotes before constructing
 Google's `fullText contains` expression. Every listing excludes trash and allows

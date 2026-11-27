@@ -36,8 +36,8 @@ test('scroll thumbs reach both endpoints, clamp overscroll, and disappear when c
 });
 test('mail list and reader bars follow selection and cannot scroll past the end', async () => {
   class LongMail extends FakeWorkspace {
-    override async mail() {const base = (await super.mail('inbox', ''))[0]!; return Array.from({length: 30}, (_, i) => ({...base, id: `m${i}`, subject: `Message ${i + 1}`}));}
-    override async message(id: string) {const base = (await super.mail('inbox', ''))[0]!; return {...base, id, body: Array.from({length: 40}, (_, i) => `Body line ${i + 1}`).join('\n')};}
+    override async mail() {const base = (await super.mail('inbox', '')).items[0]!; return {items: Array.from({length: 30}, (_, i) => ({...base, id: `m${i}`, subject: `Message ${i + 1}`}))};}
+    override async message(id: string) {const base = (await super.mail('inbox', '')).items[0]!; return {...base, id, body: Array.from({length: 40}, (_, i) => `Body line ${i + 1}`).join('\n')};}
     override async mark() {}
   }
   const app = render(<App api={new LongMail()} account="test@example.com" size={{columns: 70, rows: 24}}/>);

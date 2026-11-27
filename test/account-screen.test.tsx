@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {act} from 'react';
 import {test, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {render, cleanup} from 'ink-testing-library';
@@ -10,7 +10,13 @@ import {FakeAccounts} from './support/accounts.js';
 afterEach(cleanup);
 const size = {columns: 100, rows: 30};
 async function settle() {await pause(120);}
-async function press(app: ReturnType<typeof render>, key: string) {app.stdin.write(key); await settle();}
+async function press(app: ReturnType<typeof render>, key: string) {
+  const environment = globalThis as typeof globalThis & {IS_REACT_ACT_ENVIRONMENT?: boolean};
+  const previous = environment.IS_REACT_ACT_ENVIRONMENT;
+  environment.IS_REACT_ACT_ENVIRONMENT = true;
+  try {await act(async () => {app.stdin.write(key); await settle();});}
+  finally {environment.IS_REACT_ACT_ENVIRONMENT = previous;}
+}
 async function until(app: ReturnType<typeof render>, pattern: RegExp) {
   for (let i = 0; i < 80 && !pattern.test(app.lastFrame() ?? ''); i++) await pause(25);
   assert.match(app.lastFrame()!, pattern);

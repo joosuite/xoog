@@ -29,20 +29,20 @@ Download the matching `.sha256` file into the same directory as the archive.
 On Linux, run:
 
 ```sh
-sha256sum -c xoog-v0.1.2-with-backends-linux-x64.tar.gz.sha256
+sha256sum -c xoog-v0.1.3-with-backends-linux-x64.tar.gz.sha256
 ```
 
 On macOS, run:
 
 ```sh
-shasum -a 256 -c xoog-v0.1.2-with-backends-darwin-arm64.tar.gz.sha256
+shasum -a 256 -c xoog-v0.1.3-with-backends-darwin-arm64.tar.gz.sha256
 ```
 
 On Windows, compare the hash printed by PowerShell with the first value in the
 `.sha256` file:
 
 ```powershell
-Get-FileHash .\xoog-v0.1.2-with-backends-win32-x64.zip -Algorithm SHA256
+Get-FileHash .\xoog-v0.1.3-with-backends-win32-x64.zip -Algorithm SHA256
 ```
 
 Substitute the version and architecture you downloaded.

@@ -50,23 +50,24 @@ export type Item = Mail | Event | Task | Person | DriveFile;
 export type MailDraft = {to: string; subject: string; body: string};
 export type EventDraft = {title: string; start: string; end: string; location: string; description: string};
 export type TaskDraft = {title: string; due: string; notes: string};
-export type ReadOptions = {fresh?: boolean};
+export type ReadOptions = {fresh?: boolean; pageToken?: string};
+export type Page<T> = {items: T[]; nextPageToken?: string};
 export interface Workspace {
   readonly backend?: BackendId;
-  mail(folder: string, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Mail[]>;
+  mail(folder: string, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<Mail>>;
   message(id: string, signal?: AbortSignal, options?: ReadOptions): Promise<Mail>;
   downloadAttachment(messageId: string, attachment: Attachment, destination: string, signal?: AbortSignal): Promise<void>;
   mark(id: string, action: 'read' | 'unread' | 'star' | 'unstar' | 'archive'): Promise<void>;
   send(draft: MailDraft, reply?: Mail): Promise<void>;
   calendars(signal?: AbortSignal, options?: ReadOptions): Promise<Choice[]>;
-  events(calendar: string, day: Date, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Event[]>;
+  events(calendar: string, day: Date, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<Event>>;
   createEvent(calendar: string, draft: EventDraft): Promise<void>;
   tasklists(signal?: AbortSignal, options?: ReadOptions): Promise<Choice[]>;
-  tasks(list: string, signal?: AbortSignal, options?: ReadOptions): Promise<Task[]>;
+  tasks(list: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<Task>>;
   complete(list: string, task: Task): Promise<void>;
   createTask(list: string, draft: TaskDraft): Promise<void>;
-  people(collection: string, signal?: AbortSignal, options?: ReadOptions): Promise<Person[]>;
-  files(collection: string, folder: string | undefined, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<DriveFile[]>;
+  people(collection: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<Person>>;
+  files(collection: string, folder: string | undefined, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<DriveFile>>;
   downloadFile(file: DriveFile, destination: string, signal?: AbortSignal): Promise<void>;
 }
 

@@ -47,9 +47,9 @@ function createWorkspace(backend: BackendId): Workspace {
   }));
   return {
     backend,
-    mail: async (folder, query) => mail.filter(item =>
+    mail: async (folder, query) => ({items: mail.filter(item =>
       (folder === 'all' || (folder === 'unread' ? item.unread : folder === 'starred' ? item.starred : item.folder === folder)) &&
-      `${item.subject} ${item.from} ${item.body}`.toLowerCase().includes(query.toLowerCase())),
+      `${item.subject} ${item.from} ${item.body}`.toLowerCase().includes(query.toLowerCase()))}),
     message: async id => {const message = mail.find(item => item.id === id); if (!message) throw new Error('Screenshot message not found.'); return message;},
     downloadAttachment: async (_id, attachment, destination, signal) => {
       if (attachment.data === undefined) throw new Error('Screenshot attachment has no inline content.');
@@ -58,22 +58,22 @@ function createWorkspace(backend: BackendId): Workspace {
     calendars: async () => [{id: 'primary', title: 'Appointments'}, {id: 'personal', title: 'Home'}],
     events: async (calendar, day, query) => {
       const start = new Date(`${dayKey(day)}T00:00:00`), end = shiftDay(start, 7);
-      return agenda.filter(item => item.calendar === calendar && new Date(item.end) > start &&
+      return {items: agenda.filter(item => item.calendar === calendar && new Date(item.end) > start &&
         new Date(item.start) < end && item.title.toLowerCase().includes(query.toLowerCase()))
-        .sort((a, b) => a.start.localeCompare(b.start));
+        .sort((a, b) => a.start.localeCompare(b.start))};
     },
     tasklists: async () => [{id: '@default', title: 'Errands'}, {id: 'personal', title: 'House'}],
-    tasks: async list => todos.filter(item => item.list === list),
-    people: async collection => collection === 'other' ? [] : people.map(normalizePerson).filter(person => collection !== 'starred' || person.starred)
-      .map(person => backend === 'joom' ? {...person, addresses: [], birthdays: [], urls: [], starred: false} : person),
-    files: async (collection, folder, query) => driveFiles.filter(file =>
+    tasks: async list => ({items: todos.filter(item => item.list === list)}),
+    people: async collection => ({items: collection === 'other' ? [] : people.map(normalizePerson).filter(person => collection !== 'starred' || person.starred)
+      .map(person => backend === 'joom' ? {...person, addresses: [], birthdays: [], urls: [], starred: false} : person)}),
+    files: async (collection, folder, query) => ({items: driveFiles.filter(file =>
       (folder ? file.parent === folder : collection === 'root' ? file.parent === 'root' : collection === 'starred' ? file.starred : collection === 'shared' ? file.shared : true) &&
       file.name.toLowerCase().includes(query.toLowerCase())).map(file => {
         const content = backend === 'joom' ? {...file, owners: [], starred: false, shared: false} : file;
         if (backend === 'joom' && file.mimeType === 'application/vnd.google-apps.document') return normalizeFile({...content, name: `${file.name}.docx`, mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
         if (backend === 'joom' && file.mimeType === 'application/vnd.google-apps.spreadsheet') return normalizeFile({...content, name: `${file.name}.xlsx`, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
         return normalizeFile(content);
-      }),
+      })}),
     downloadFile: readOnly,
     mark: readOnly, send: readOnly, complete: readOnly, createEvent: readOnly, createTask: readOnly,
   };

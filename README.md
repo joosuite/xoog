@@ -161,7 +161,7 @@ addresses, organizations, birthdays, websites, and notes when available.
 
 In Drive, choose My Drive, Recent, Starred, or Shared with me. Press `Enter` to
 open a folder and `Backspace` to go up. `/` searches file contents and names
-within the current collection or folder. Xoog loads up to 200 files per listing.
+within the current collection or folder. More files load as you scroll.
 Press `d` on a file to choose where to save it. Existing files are kept, and
 `Esc` cancels. Google Docs, Slides, and Drawings download as PDF. Sheets download
 as Excel `.xlsx` files. Folders and unsupported Google file types cannot be
@@ -219,8 +219,11 @@ body, `Enter` adds a line. `Ctrl+S` opens a review screen. After reviewing the
 fields, press `Enter` to send or create the item. `Esc` returns to editing.
 Pressing `Esc` while editing discards the draft.
 
-Xoog currently loads at most 40 messages, 200 events, or 200 tasks per collection.
-It lists up to 100 calendars and task lists. Event editing, task
+Mail, events, tasks, contacts, and files load in pages as you scroll. A `+` beside
+the item count means more are available. Task and contact searches continue
+through later pages to find matches. Refresh keeps the pages you have already
+browsed and your selected item when it is still present. Calendars and task lists
+are loaded without a fixed result limit. Event editing, task
 editing, and persistent drafts are outside this initial version.
 
 ## Troubleshoot

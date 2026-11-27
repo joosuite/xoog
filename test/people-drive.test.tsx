@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {App} from '../src/app.js';
 import {DriveDownload} from '../src/drive-download.js';
-import {driveDownload, isFolder, normalizeFile, normalizePerson, type DriveFile} from '../src/model.js';
+import {driveDownload, isFolder, normalizeFile, normalizePerson, type DriveFile, type Page} from '../src/model.js';
 import {FakeWorkspace} from './support/workspace.js';
 
 afterEach(cleanup);
@@ -71,17 +71,17 @@ test('Drive save errors preserve existing files, allow retry, and cancellation a
   await press(waiting, '\x1b'); assert.ok(aborted); assert.ok(closed);
 });
 test('switching services aborts an outstanding Drive request and ignores its late result', async () => {
-  let finish: (files: DriveFile[]) => void = () => {};
+  let finish: (files: Page<DriveFile>) => void = () => {};
   let signal: AbortSignal | undefined;
   class Pending extends FakeWorkspace {
-    override async files(_collection: string, _folder: string | undefined, _query: string, nextSignal?: AbortSignal): Promise<DriveFile[]> {
+    override async files(_collection: string, _folder: string | undefined, _query: string, nextSignal?: AbortSignal): Promise<Page<DriveFile>> {
       signal = nextSignal; return new Promise(resolve => {finish = resolve;});
     }
   }
   const app = render(<App api={new Pending()} account="test@example.com" size={{columns: 100, rows: 30}}/>);
   await until(app, /Saturday at ours/); await press(app, '5'); await until(app, /Loading files/);
   await press(app, '4'); await until(app, /Contact details/); assert.ok(signal?.aborted);
-  finish([normalizeFile({id: 'late', name: 'Late Drive response.pdf', mimeType: 'application/pdf'})]);
+  finish({items: [normalizeFile({id: 'late', name: 'Late Drive response.pdf', mimeType: 'application/pdf'})]});
   await pause(80); assert.doesNotMatch(app.lastFrame()!, /Late Drive response/); assert.match(app.lastFrame()!, /Jeanne Fleury/);
 });
 test('normalization strips terminal controls and chooses supported Drive export formats', () => {

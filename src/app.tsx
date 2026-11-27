@@ -6,7 +6,7 @@ FIRST VIEWPORT: Header and service tabs above folders, list, and preview; shortc
 FORM: Split workspace, user selected option 1, surface seed ac819dc6.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 */
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Text, useApp, useInput, useStdout} from 'ink';
 import {Input} from './input.js';
 import wrapAnsi from 'wrap-ansi';
@@ -19,13 +19,13 @@ import {DatePicker} from './date-picker.js';
 import {AttachmentScreen} from './attachment-screen.js';
 import {attachmentSize} from './attachment-files.js';
 import {DriveDownload} from './drive-download.js';
+import {usePagedList, type PageLoader} from './use-paged-list.js';
 
 const folders: Choice[] = [{id: 'inbox', title: 'Inbox'}, {id: 'unread', title: 'Unread'}, {id: 'starred', title: 'Starred'}, {id: 'sent', title: 'Sent'}, {id: 'all', title: 'All mail'}];
 type Pane = 'nav' | 'list' | 'detail';
 const peopleCollections: Choice[] = [{id: 'contacts', title: 'Contacts'}, {id: 'starred', title: 'Starred'}, {id: 'other', title: 'Other contacts'}];
 const driveCollections: Choice[] = [{id: 'root', title: 'My Drive'}, {id: 'recent', title: 'Recent'}, {id: 'starred', title: 'Starred'}, {id: 'shared', title: 'Shared with me'}];
 type Draft = {view: DraftView; initial: Record<string, string>; reply?: Mail};
-type DataState = {view: View; items: Item[]; loading: boolean; error: string};
 
 export function useSize(fixed?: {columns: number; rows: number}) {
   const {stdout} = useStdout();
@@ -151,14 +151,13 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
   const [attachmentMessage, setAttachmentMessage] = useState<Mail>();
   const [queries, setQueries] = useState<Record<View, string>>({mail: '', calendar: '', tasks: '', people: '', drive: ''});
   const [search, setSearch] = useState<string | undefined>();
-  const [data, setData] = useState<DataState>({view: 'mail', items: [], loading: true, error: ''});
   const [selected, setSelected] = useState(0);
   const [pane, setPane] = useState<Pane>('list');
   const [navCursor, setNavCursor] = useState(0);
   const [offset, setOffset] = useState(0);
   const [revision, setRevision] = useState({id: 0, fresh: false});
-  const readRevisions = useRef({collections: 0, list: 0, detail: 0});
-  const lastContext = useRef('');
+  const readRevisions = useRef({collections: 0, detail: 0});
+  const selection = useRef<{loader?: PageLoader<Item>; items: Item[]}>({items: []});
   const [detail, setDetail] = useState<{id: string; mail?: Mail; loading?: boolean; error?: string}>({id: ''});
   const [draft, setDraft] = useState<Draft | undefined>();
   const [help, setHelp] = useState(false);
@@ -173,9 +172,17 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
   const query = queries[view];
   const choices = view === 'mail' ? accountFolders : view === 'calendar' ? calendars : view === 'tasks' ? tasklists : view === 'people' ? accountPeople : accountDrive;
   const collection = view === 'mail' ? folder : view === 'calendar' ? calendar : view === 'tasks' ? tasklist : view === 'people' ? peopleCollection : driveCollection;
-  const currentItems = data.view === view ? data.items : [];
   const localSearch = view === 'tasks' || view === 'people';
-  const items = localSearch && query ? currentItems.filter(item => (view === 'tasks' ? `${(item as Task).title} ${(item as Task).notes}` : [(item as Person).title, ...(item as Person).emails, ...(item as Person).phones, ...(item as Person).addresses, ...(item as Person).organizations, ...(item as Person).birthdays, ...(item as Person).urls, (item as Person).notes].join(' ')).toLowerCase().includes(query.toLowerCase())) : currentItems;
+  const remoteQuery = localSearch ? '' : query;
+  const loadPage = useCallback<PageLoader<Item>>((signal, options) =>
+    view === 'mail' ? api.mail(folder, remoteQuery, signal, options)
+      : view === 'calendar' ? api.events(calendar, day, remoteQuery, signal, options)
+      : view === 'tasks' ? api.tasks(tasklist, signal, options)
+      : view === 'people' ? api.people(peopleCollection, signal, options)
+      : api.files(driveCollection, drivePath.at(-1)?.id, remoteQuery, signal, options),
+  [api, view, folder, calendar, day, tasklist, peopleCollection, driveCollection, drivePath, remoteQuery]);
+  const data = usePagedList(loadPage, revision);
+  const items = useMemo(() => localSearch && query ? data.items.filter(item => (view === 'tasks' ? `${(item as Task).title} ${(item as Task).notes}` : [(item as Person).title, ...(item as Person).emails, ...(item as Person).phones, ...(item as Person).addresses, ...(item as Person).organizations, ...(item as Person).birthdays, ...(item as Person).urls, (item as Person).notes].join(' ')).toLowerCase().includes(query.toLowerCase())) : data.items, [data.items, localSearch, query, view]);
   const item = items[Math.min(selected, Math.max(0, items.length - 1))];
   const bodyHeight = Math.max(10, rows - 8);
   const hasNav = columns >= 110;
@@ -213,17 +220,18 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
     return () => controller.abort();
   }, [api, view, revision]);
   useEffect(() => {
-    const controller = new AbortController();
-    const options = readOptions('list');
-    const context = JSON.stringify([view, folder, calendar, tasklist, peopleCollection, driveCollection, drivePath, day, localSearch ? '' : query]);
-    const changed = lastContext.current !== context;
-    lastContext.current = context;
-    setData(old => ({view, items: changed ? [] : old.items, loading: true, error: ''}));
-    if (changed) {setSelected(0); setOffset(0); setDetail({id: ''});}
-    const load = view === 'mail' ? api.mail(folder, query, controller.signal, options) : view === 'calendar' ? api.events(calendar, day, query, controller.signal, options) : view === 'tasks' ? api.tasks(tasklist, controller.signal, options) : view === 'people' ? api.people(peopleCollection, controller.signal, options) : api.files(driveCollection, drivePath.at(-1)?.id, query, controller.signal, options);
-    void load.then(value => {if (!controller.signal.aborted) {setData({view, items: value, loading: false, error: ''}); setSelected(v => Math.max(0, Math.min(v, value.length - 1)));}}).catch(error => {if (!controller.signal.aborted) setData({view, items: [], loading: false, error: clean(error.message)});});
-    return () => controller.abort();
-  }, [api, view, folder, calendar, tasklist, peopleCollection, driveCollection, drivePath, day, localSearch ? '' : query, revision]);
+    const previous = selection.current;
+    if (previous.loader !== loadPage) {setSelected(0); setOffset(0); setDetail({id: ''});}
+    else {
+      const id = previous.items[selected]?.id;
+      const index = id ? items.findIndex(item => item.id === id) : -1;
+      setSelected(index >= 0 ? index : Math.min(selected, Math.max(0, items.length - 1)));
+    }
+    selection.current = {loader: loadPage, items};
+  }, [loadPage, items]);
+  useEffect(() => {
+    if (pane === 'list' && search === undefined && !draft && !help && !pickingDate && !attachmentMessage && !downloading && !data.loading && !data.loadingMore && !data.error && !data.moreError && data.nextPageToken && selected + pageSize >= items.length) void data.loadMore();
+  }, [pane, search, draft, help, pickingDate, attachmentMessage, downloading, data.loading, data.loadingMore, data.error, data.moreError, data.nextPageToken, data.loadMore, selected, pageSize, items.length]);
   useEffect(() => {
     const options = readOptions('detail');
     setOffset(0);
@@ -341,10 +349,10 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
   const detailRows = bodyHeight - 7;
   const detailMaxOffset = Math.max(0, detailLines.length - detailRows);
   const detailOffset = Math.min(offset, detailMaxOffset);
-  const error = actionError || data.error || collectionError;
+  const error = actionError || data.error || data.moreError || collectionError;
   const helpLines = [
     ...(onAccounts ? ['A           Accounts, login, logout, and authentication setup'] : []),
-    '1 / 2 / 3   Mail / Calendar / Tasks', '4 / 5       People / Drive', 'Tab         Switch between navigation, list, and reader', 'h / l       Focus the previous / next pane', 'j / k       Move through rows or scroll the reader', 'Enter       Open an item; choose a mailbox, calendar, or task list', microsoft ? '/           Search with Joom Outlook filters' : '/           Search (Gmail query syntax in live mail)', 'Esc         Back; clear an active search', 'g           Reload using the configured cache TTL', 'f           Force refresh, bypassing the cache', 'n           Compose mail, create an event, or create a task', '', microsoft ? 'Mail: v attachments · u read/unread · s flag · r reply' : 'Mail: v attachments · u read/unread · s star · a archive · r reply', 'Calendar: d choose date · t today · [ / ] previous/next week', 'Tasks: Space complete / reopen', 'People: / searches names, email, phone, and contact details', 'Drive: Enter opens folders · Backspace goes up · d downloads', 'Drive search matches file contents inside the current collection.', '', 'Forms: Tab fields · Ctrl+S review · Enter save after review', 'Message body: Enter adds a new line', 'q or Ctrl+C quits; Esc closes this help', '', 'Loads up to 40 messages; 200 events, tasks, or Drive files.', 'People loads all contacts in the selected collection.', 'Calendar agenda covers seven days in your local timezone.', ...(microsoft ? ['Outlook: use All mail for full-text search with no read/flag filter.', 'Joom exposes Contacts and OneDrive folders, without Google-only collections.'] : []),
+    '1 / 2 / 3   Mail / Calendar / Tasks', '4 / 5       People / Drive', 'Tab         Switch between navigation, list, and reader', 'h / l       Focus the previous / next pane', 'j / k       Move through rows or scroll the reader', 'Enter       Open an item; choose a mailbox, calendar, or task list', microsoft ? '/           Search with Joom Outlook filters' : '/           Search (Gmail query syntax in live mail)', 'Esc         Back; clear an active search', 'g           Reload using the configured cache TTL', 'f           Force refresh, bypassing the cache', 'n           Compose mail, create an event, or create a task', '', microsoft ? 'Mail: v attachments · u read/unread · s flag · r reply' : 'Mail: v attachments · u read/unread · s star · a archive · r reply', 'Calendar: d choose date · t today · [ / ] previous/next week', 'Tasks: Space complete / reopen', 'People: / searches names, email, phone, and contact details', 'Drive: Enter opens folders · Backspace goes up · d downloads', 'Drive search matches file contents inside the current collection.', '', 'Forms: Tab fields · Ctrl+S review · Enter save after review', 'Message body: Enter adds a new line', 'q or Ctrl+C quits; Esc closes this help', '', 'Scroll down to load more items. A + means more are available.', 'Task and contact searches continue through remaining pages.', 'Calendar agenda covers seven days in your local timezone.', ...(microsoft ? ['Outlook: use All mail for full-text search with no read/flag filter.', 'Joom exposes Contacts and OneDrive folders, without Google-only collections.'] : []),
   ];
   const helpWrapped = helpLines.flatMap(text => wrapAnsi(text, Math.max(10, columns - 8), {hard: true, trim: false}).split('\n'));
   const helpPageRows = Math.max(1, bodyHeight - 4);
@@ -368,14 +376,14 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
     </Box> : <Box height={bodyHeight}>
       {(hasNav || pane === 'nav') && <CollectionNav view={view} choices={choices} active={collection} cursor={navCursor} focused={pane === 'nav'} day={day} height={bodyHeight}/>}
       {showList && <Box width={actualListWidth} flexShrink={0} borderStyle="single" borderColor={pane === 'list' ? color.accent : color.border} flexDirection="column" paddingX={1} overflow="hidden">
-        <Box height={1}><Text bold color={color.text} wrap="truncate">{collectionTitle}</Text><Box flexGrow={1}/><Text color={color.muted}>{items.length}{view === 'mail' && items.length === 40 || (view === 'calendar' || view === 'tasks' || view === 'drive') && items.length === 200 ? '+' : ''}</Text></Box>
+        <Box height={1}><Text bold color={color.text} wrap="truncate">{collectionTitle}</Text><Box flexGrow={1}/><Text color={color.muted}>{items.length}{data.nextPageToken ? '+' : ''}</Text></Box>
         <Text color={color.muted} wrap="truncate">{query ? `Search: ${query}` : view === 'calendar' ? `${dateLabel(dayKey(day), true)} - ${dateLabel(dayKey(shiftDay(day, 6)), true)}` : view === 'mail' ? 'From                 Subject' : view === 'tasks' ? 'Space completes a task' : view === 'people' ? 'Name / Email / Phone' : 'Enter opens folders · d download'}</Text>
         <Box marginTop={1} flexDirection="column" flexGrow={1} overflow="hidden">
-          <ScrollArea total={data.loading || data.error ? 0 : items.length} visible={pageSize} offset={listOffset} height={listRows} active={pane === 'list'}>
-            {data.loading ? <Text color={color.muted}>Loading {view === 'mail' ? 'messages' : view === 'calendar' ? 'events' : view === 'tasks' ? 'tasks' : view === 'people' ? 'contacts' : 'files'}…</Text> : data.error ? <Text color={color.error}>Could not load this collection.{"\n\n"}Press g to retry.</Text> : !items.length ? <Text color={color.muted}>{query ? 'No results. Press Esc to clear your search.' : view === 'mail' ? 'No messages here.' : view === 'calendar' ? 'No events this week.' : view === 'tasks' ? 'No tasks here. Press n to create one.' : view === 'people' ? 'No contacts here.' : 'No files here.'}</Text> : items.slice(listOffset, listOffset + pageSize).map((entry, i) => <ItemRow key={entry.id} view={view} item={entry} selected={selected === i + listOffset} width={actualListWidth - 6}/>)}
+          <ScrollArea total={items.length} visible={pageSize} offset={listOffset} height={listRows} active={pane === 'list'}>
+            {!items.length && (data.loading || data.loadingMore || data.nextPageToken && !data.moreError && !data.error) ? <Text color={color.muted}>Loading {view === 'mail' ? 'messages' : view === 'calendar' ? 'events' : view === 'tasks' ? 'tasks' : view === 'people' ? 'contacts' : 'files'}…</Text> : !items.length && (data.error || data.moreError) ? <Text color={color.error}>Could not load this collection.{"\n\n"}Press g to retry.</Text> : !items.length ? <Text color={color.muted}>{query ? 'No results. Press Esc to clear your search.' : view === 'mail' ? 'No messages here.' : view === 'calendar' ? 'No events this week.' : view === 'tasks' ? 'No tasks here. Press n to create one.' : view === 'people' ? 'No contacts here.' : 'No files here.'}</Text> : items.slice(listOffset, listOffset + pageSize).map((entry, i) => <ItemRow key={entry.id} view={view} item={entry} selected={selected === i + listOffset} width={actualListWidth - 6}/>)}
           </ScrollArea>
         </Box>
-        <Text color={color.muted}>{items.length ? `${Math.min(selected + 1, items.length)} / ${items.length}` : ' '}{pane === 'nav' && !hasNav ? ' · Enter chooses collection' : ''}</Text>
+        <Text color={color.muted} wrap="truncate">{data.loadingMore ? view === 'mail' ? 'Loading older messages…' : 'Loading more…' : data.loading && items.length ? 'Refreshing…' : data.moreError ? 'Could not load more · g retry' : data.error ? 'Load failed · g retry' : items.length ? `${Math.min(selected + 1, items.length)} / ${items.length}${data.nextPageToken ? '+' : ''}` : ' '}{pane === 'nav' && !hasNav ? ' · Enter chooses collection' : ''}</Text>
       </Box>}
       {showDetail && !(pane === 'nav' && !hasNav) && <Box width={detailWidth} borderStyle="single" borderColor={pane === 'detail' ? color.accent : color.border} flexDirection="column" paddingX={2} overflow="hidden">
         {item ? <>

@@ -4,7 +4,7 @@ import {constants} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve, dirname, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {clean, line, normalizeMail, normalizeEvent, normalizeTask, normalizePerson, normalizeFile, driveDownload, shiftDay, type ReadOptions, type Workspace, type Mail, type Attachment, type MailDraft, type EventDraft, type TaskDraft, type DriveFile} from './model.js';
+import {clean, line, normalizeMail, normalizeEvent, normalizeTask, normalizePerson, normalizeFile, driveDownload, shiftDay, type Page, type ReadOptions, type Workspace, type Mail, type Attachment, type MailDraft, type EventDraft, type TaskDraft, type DriveFile} from './model.js';
 import {authError} from './auth-error.js';
 import {copyNewFile, decodeAttachmentData, writeNewAttachment} from './attachment-files.js';
 import {backendInfo, type BackendId} from './backend.js';
@@ -14,7 +14,7 @@ type Raw = Record<string, any>;
 // Only commands that accept Joog's TTL option belong here. Writes and downloads
 // must keep their existing command parameters.
 const cacheableReads = new Set([
-  'mail.messages.list', 'mail.messages.get', 'calendar.calendars.list', 'calendar.events',
+  'mail.messages.list', 'mail.messages.get', 'calendar.calendars.list', 'calendar.events.list',
   'tasks.tasklists.list', 'tasks.tasks.list', 'contacts.people.connections.list',
   'contacts.other-contacts.list', 'drive.files.list',
 ]);
@@ -89,9 +89,21 @@ export class Joog implements Workspace {
     } finally { await rm(directory, {recursive: true, force: true}); }
   }
 
-  async mail(folder: string, query: string, signal?: AbortSignal, options?: ReadOptions) {
+  protected pageParameters(size: 'pageSize' | 'maxResults', options?: ReadOptions) {
+    // Request complete provider pages so the cursor never skips truncated rows.
+    return {maxPages: 1, [size]: 50, ...(options?.pageToken ? {pageToken: options.pageToken} : {})};
+  }
+  protected page<T>(raw: Raw, items: T[]): Page<T> {
+    const token = raw.nextPageToken;
+    if (token !== undefined && (typeof token !== 'string' || token.length > 8192)) throw new Error('The service returned an invalid page cursor. Press g to retry.');
+    return {items, ...(token ? {nextPageToken: token} : {})};
+  }
+  protected mailQuery(folder: string, query: string) {
     const filters: Record<string, string> = {inbox: 'in:inbox', unread: 'is:unread', starred: 'is:starred', sent: 'in:sent', all: '-in:trash -in:spam'};
-    const result = await this.call('mail', 'messages.list', {q: `${filters[folder] ?? filters.inbox} ${query}`.trim(), max: 40}, signal, options);
+    return `${filters[folder] ?? filters.inbox} ${query}`.trim();
+  }
+  async mail(folder: string, query: string, signal?: AbortSignal, options?: ReadOptions) {
+    const result = await this.call('mail', 'messages.list', {q: this.mailQuery(folder, query), ...this.pageParameters('maxResults', options)}, signal, options);
     const messages: Mail[] = [];
     // Four concurrent Joog processes cap keychain and API pressure.
     const ids: Raw[] = result.messages ?? [];
@@ -99,7 +111,7 @@ export class Joog implements Workspace {
       const batch = await Promise.all(ids.slice(offset, offset + 4).map(raw => this.call('mail', 'messages.get', {id: raw.id, format: 'metadata'}, signal, options)));
       messages.push(...batch.map(raw => normalizeMail(raw)));
     }
-    return messages;
+    return this.page(result, messages);
   }
   async message(id: string, signal?: AbortSignal, options?: ReadOptions) { return normalizeMail(await this.call('mail', 'messages.get', {id, format: 'full'}, signal, options), true); }
   async downloadAttachment(messageId: string, attachment: Attachment, destination: string, signal?: AbortSignal) {
@@ -127,24 +139,24 @@ export class Joog implements Workspace {
     } else { await this.call('mail', 'messages.send', params); }
   }
   async calendars(signal?: AbortSignal, options?: ReadOptions) {
-    const raw = await this.call('calendar', 'calendars.list', {max: 100}, signal, options);
+    const raw = await this.call('calendar', 'calendars.list', {}, signal, options);
     return (raw.items ?? []).map((v: Raw) => ({id: String(v.id), title: clean(v.summaryOverride || v.summary || v.id)}));
   }
-  async events(calendar: string, day: Date, query: string, signal?: AbortSignal, options?: ReadOptions) {
+  async events(calendar: string, day: Date, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<ReturnType<typeof normalizeEvent>>> {
     const from = new Date(day); from.setHours(0, 0, 0, 0);
-    const raw = await this.call('calendar', 'events', {calendar, from: from.toISOString(), until: shiftDay(from, 7).toISOString(), ...(query ? {query} : {}), max: 200}, signal, options);
-    return (raw.items ?? []).filter((v: Raw) => v.status !== 'cancelled').map(normalizeEvent);
+    const raw = await this.call('calendar', 'events.list', {calendarId: calendar, timeMin: from.toISOString(), timeMax: shiftDay(from, 7).toISOString(), singleEvents: true, orderBy: 'startTime', ...(query ? {q: query} : {}), ...this.pageParameters('maxResults', options)}, signal, options);
+    return this.page(raw, (raw.items ?? []).filter((v: Raw) => v.status !== 'cancelled').map(normalizeEvent));
   }
   async createEvent(calendar: string, draft: EventDraft) {
     await this.call('calendar', 'events.insert', {calendarId: calendar, summary: draft.title, start: {dateTime: draft.start}, end: {dateTime: draft.end}, location: draft.location, description: draft.description});
   }
   async tasklists(signal?: AbortSignal, options?: ReadOptions) {
-    const raw = await this.call('tasks', 'tasklists.list', {max: 100}, signal, options);
+    const raw = await this.call('tasks', 'tasklists.list', {}, signal, options);
     return (raw.items ?? []).map((v: Raw) => ({id: String(v.id), title: clean(v.title)}));
   }
-  async tasks(list: string, signal?: AbortSignal, options?: ReadOptions) {
-    const raw = await this.call('tasks', 'tasks.list', {tasklist: list, showCompleted: true, showHidden: true, max: 200}, signal, options);
-    return (raw.items ?? []).filter((v: Raw) => !v.deleted).map(normalizeTask);
+  async tasks(list: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<ReturnType<typeof normalizeTask>>> {
+    const raw = await this.call('tasks', 'tasks.list', {tasklist: list, showCompleted: true, showHidden: true, ...this.pageParameters('maxResults', options)}, signal, options);
+    return this.page(raw, (raw.items ?? []).filter((v: Raw) => !v.deleted).map(normalizeTask));
   }
   async complete(list: string, task: ReturnType<typeof normalizeTask>) {
     await this.call('tasks', 'tasks.patch', {tasklist: list, task: task.id, body: {status: task.completed ? 'needsAction' : 'completed', ...(!task.completed ? {} : {completed: null})}});
@@ -152,15 +164,15 @@ export class Joog implements Workspace {
   async createTask(list: string, draft: TaskDraft) {
     await this.call('tasks', 'tasks.insert', {tasklist: list, title: draft.title, notes: draft.notes, ...(draft.due ? {due: `${draft.due}T00:00:00Z`} : {})});
   }
-  async people(collection: string, signal?: AbortSignal, options?: ReadOptions) {
+  async people(collection: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<ReturnType<typeof normalizePerson>>> {
     const other = collection === 'other';
-    const raw = await this.call('contacts', other ? 'other-contacts.list' : 'people.connections.list', other
+    const raw = await this.call('contacts', other ? 'other-contacts.list' : 'people.connections.list', {...(other
       ? {readMask: 'names,emailAddresses,phoneNumbers'}
-      : {resourceName: 'people/me', personFields: 'names,emailAddresses,phoneNumbers,addresses,organizations,birthdays,urls,biographies,memberships', sortOrder: 'FIRST_NAME_ASCENDING'}, signal, options);
-    return (raw[other ? 'otherContacts' : 'connections'] ?? []).map(normalizePerson)
-      .filter((person: ReturnType<typeof normalizePerson>) => collection !== 'starred' || person.starred);
+      : {resourceName: 'people/me', personFields: 'names,emailAddresses,phoneNumbers,addresses,organizations,birthdays,urls,biographies,memberships', sortOrder: 'FIRST_NAME_ASCENDING'}), ...this.pageParameters('pageSize', options)}, signal, options);
+    return this.page(raw, (raw[other ? 'otherContacts' : 'connections'] ?? []).map(normalizePerson)
+      .filter((person: ReturnType<typeof normalizePerson>) => collection !== 'starred' || person.starred));
   }
-  async files(collection: string, folder: string | undefined, query: string, signal?: AbortSignal, options?: ReadOptions) {
+  async files(collection: string, folder: string | undefined, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Page<DriveFile>> {
     const quote = (value: string) => `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
     const filters = ['trashed = false'];
     if (folder) filters.push(`${quote(folder)} in parents`);
@@ -171,9 +183,9 @@ export class Joog implements Workspace {
     const raw = await this.call('drive', 'files.list', {
       q: filters.join(' and '), orderBy: folder || collection === 'root' ? 'folder,name_natural' : 'modifiedTime desc',
       fields: 'nextPageToken,files(id,name,mimeType,size,modifiedTime,description,owners(displayName,emailAddress),shared,starred,capabilities(canDownload),shortcutDetails(targetId,targetMimeType))',
-      supportsAllDrives: true, includeItemsFromAllDrives: true, max: 200,
+      supportsAllDrives: true, includeItemsFromAllDrives: true, ...this.pageParameters('pageSize', options),
     }, signal, options);
-    return (raw.files ?? []).map(normalizeFile);
+    return this.page(raw, (raw.files ?? []).map(normalizeFile));
   }
   async downloadFile(file: DriveFile, destination: string, signal?: AbortSignal) {
     const format = driveDownload(file);
