@@ -4,6 +4,7 @@ import {App, useSize} from './app.js';
 import {Input} from './input.js';
 import {clean, type Workspace} from './model.js';
 import {color} from './theme.js';
+import {backendInfo, type BackendId} from './backend.js';
 import {type AccountManager, type AccountList} from './accounts.js';
 import {ScrollArea} from './scroll-area.js';
 import wrapAnsi from 'wrap-ansi';
@@ -12,18 +13,19 @@ import {AccountHub, accountHubLayout, authenticationActions, accountActions, typ
 type Screen = 'accounts' | 'login' | 'enroll' | 'logout';
 type Size = {columns: number; rows: number};
 
-export function Xoog({auth, workspace, initialCalendar, initialTasklist, size}: {
+export function Xoog({auth, workspace, initialCalendar, initialTasklist, size, backends, onBackend}: {
   auth: AccountManager; workspace: (account: string) => Workspace;
-  initialCalendar?: string; initialTasklist?: string; size?: Size;
+  initialCalendar?: string; initialTasklist?: string; size?: Size; backends?: BackendId[]; onBackend?: (backend: BackendId) => void;
 }) {
   const [account, setAccount] = useState<string>();
   const api = useMemo(() => account ? workspace(account) : undefined, [account, workspace]);
   return account && api
     ? <App key={account} api={api} account={account} initialCalendar={initialCalendar} initialTasklist={initialTasklist} size={size} onAccounts={() => setAccount(undefined)}/>
-    : <AccountScreen auth={auth} size={size} onSelect={setAccount}/>;
+    : <AccountScreen auth={auth} size={size} onSelect={setAccount} backends={backends} onBackend={onBackend}/>;
 }
 
-export function AccountScreen({auth, size, onSelect}: {auth: AccountManager; size?: Size; onSelect: (account: string) => void}) {
+export function AccountScreen({auth, size, onSelect, backends, onBackend}: {auth: AccountManager; size?: Size; onSelect: (account: string) => void; backends?: BackendId[]; onBackend?: (backend: BackendId) => void}) {
+  const backend = auth.backend ?? 'joog', info = backendInfo[backend];
   const {exit} = useApp();
   const {columns, rows} = useSize(size);
   const borderedFooter = columns >= 90 && rows >= 24;
@@ -88,7 +90,7 @@ export function AccountScreen({auth, size, onSelect}: {auth: AccountManager; siz
     setPane('authentication'); setAuthenticationCursor(index); setError('');
     if (index === 0) void perform('Initializing credential vault…', signal => auth.initialize(signal), 'Credential vault ready.', 'accounts');
     if (index === 1) {setScreen('enroll'); setField(0); setClientId(''); setClientSecret(''); setNotice('');}
-    if (index === 2) void perform('Testing authentication connection…', signal => auth.test(signal), 'Google OAuth connection successful.', 'accounts');
+    if (index === 2) void perform('Testing authentication connection…', signal => auth.test(signal), backend === 'joom' ? 'Microsoft OAuth endpoint reachable. App registration and sign-in were not verified.' : 'Google OAuth connection successful.', 'accounts');
   }
   function openLogin() {setScreen('login'); setEmail(''); setError(''); setNotice('');}
   function beginLogout() {
@@ -99,12 +101,12 @@ export function AccountScreen({auth, size, onSelect}: {auth: AccountManager; siz
   function submit() {
     if (screen === 'login') {
       const value = email.trim().toLowerCase();
-      if (!/^[^\s<>@,]+@[^\s<>@,]+\.[^\s<>@,]+$/.test(value)) {setError('Enter a valid Google account email.'); return;}
-      void perform('Starting Google sign-in…', signal => auth.login(value, signal, () => {
+      if (!/^[^\s<>@,]+@[^\s<>@,]+\.[^\s<>@,]+$/.test(value)) {setError(`Enter a valid ${info.provider} account email.`); return;}
+      void perform(`Starting ${info.provider} sign-in…`, signal => auth.login(value, signal, () => {
         if (mounted.current && !signal.aborted) setBusy('Complete sign-in in your browser. Waiting up to 3 minutes…');
       }), 'Logged in. Press Enter to open the selected account.', 'accounts');
     } else if (screen === 'enroll') {
-      if (!clientId.trim() || !clientSecret.trim()) {setError('Enter both the client ID and client secret.'); return;}
+      if (!clientId.trim() || info.secret && !clientSecret.trim()) {setError(info.secret ? 'Enter both the client ID and client secret.' : 'Enter the Application client ID.'); return;}
       const id = clientId.trim(), secret = clientSecret.trim();
       setClientSecret('');
       void perform('Saving OAuth client credentials…', signal => auth.enroll(id, secret, signal), 'OAuth client saved. Press L to log in.', 'accounts');
@@ -114,6 +116,9 @@ export function AccountScreen({auth, size, onSelect}: {auth: AccountManager; siz
   }
   useInput((input, key) => {
     if (columns < 52 || rows < 18) {if (input === 'q') exit(); return;}
+    if (screen === 'accounts' && !busy && onBackend && /^[12]$/.test(input)) {
+      const selected = backends?.[Number(input) - 1]; if (selected) onBackend(selected); return;
+    }
     if (busy) {if (key.escape) operation.current?.abort(); return;}
     if (error) {
       if (key.escape || key.return) {setError(''); setErrorOffset(0); return;}
@@ -124,8 +129,8 @@ export function AccountScreen({auth, size, onSelect}: {auth: AccountManager; siz
     }
     if (key.escape) {setScreen('accounts'); setClientSecret(''); setError(''); return;}
     if (screen === 'login' || screen === 'enroll') {
-      if (screen === 'enroll' && key.tab) setField(v => 1 - v);
-      if (key.return) {if (screen === 'enroll' && field === 0) setField(1); else submit();}
+      if (screen === 'enroll' && info.secret && key.tab) setField(v => 1 - v);
+      if (key.return) {if (screen === 'enroll' && info.secret && field === 0) setField(1); else submit();}
       if (key.ctrl && input === 's' && screen === 'enroll') submit();
       return;
     }
@@ -167,29 +172,29 @@ export function AccountScreen({auth, size, onSelect}: {auth: AccountManager; siz
   const errorMaxOffset = Math.max(0, errorLines.length - errorRows);
   const errorScroll = Math.min(errorOffset, errorMaxOffset);
   return <Box width={columns} height={rows - 1} flexDirection="column" backgroundColor={color.background}>
-    <Box height={2} flexDirection="column"><Box height={1} paddingX={1}><Text bold color={color.accent}>xoog</Text><Text color={color.muted}> / accounts</Text><Box flexGrow={1}/></Box><Text color={color.border}>{'─'.repeat(columns)}</Text></Box>
+    <Box height={2} flexDirection="column"><Box height={1} paddingX={1}><Text bold color={color.accent}>xoog</Text><Text color={color.muted}> / accounts</Text><Box flexGrow={1}/>{backends?.map((id, index) => <Text key={id} color={id === backend ? color.selectedText : color.muted} backgroundColor={id === backend ? color.selection : undefined}>{` ${index + 1} ${backendInfo[id].provider} `}</Text>)}</Box><Text color={color.border}>{'─'.repeat(columns)}</Text></Box>
     {screen === 'accounts' && !busy && !error ? <AccountHub columns={columns} height={bodyHeight} accounts={snapshot.accounts} loading={loading} cursor={cursor}
       pane={pane} authenticationCursor={authenticationCursor} actionCursor={actionCursor}/> : <Box height={bodyHeight} borderStyle="single" borderColor={color.border} paddingX={2} flexDirection="column" overflow="hidden">
-      <Text bold color={color.text}>{screen === 'accounts' ? 'Authentication' : screen === 'login' ? 'Log in to Google' : screen === 'enroll' ? 'OAuth client credentials' : 'Log out of this account?'}</Text>
+      <Text bold color={color.text}>{screen === 'accounts' ? 'Authentication' : screen === 'login' ? `Log in to ${info.provider}` : screen === 'enroll' ? 'OAuth client credentials' : 'Log out of this account?'}</Text>
       <Box marginTop={1} flexDirection="column" flexGrow={1} overflow="hidden">
-        {busy ? <><Text bold color={color.accent}>{busy}</Text><Box marginTop={1}><Text color={color.muted}>{process.platform === 'darwin' && screen === 'login' && busy === 'Starting Google sign-in…' ? 'Check for a macOS Keychain approval prompt. Esc cancels.' : 'Esc cancels.'}</Text></Box></> : error ? <ScrollArea total={errorLines.length} visible={errorRows} offset={errorScroll} height={errorRows} active>
+        {busy ? <><Text bold color={color.accent}>{busy}</Text><Box marginTop={1}><Text color={color.muted}>{process.platform === 'darwin' && screen === 'login' && busy === `Starting ${info.provider} sign-in…` ? 'Check for a macOS Keychain approval prompt. Esc cancels.' : 'Esc cancels.'}</Text></Box></> : error ? <ScrollArea total={errorLines.length} visible={errorRows} offset={errorScroll} height={errorRows} active>
           <Text color={color.error}>{errorLines.slice(errorScroll, errorScroll + errorRows).join('\n')}</Text>
         </ScrollArea> : screen === 'login' ? <>
-          <Text color={color.muted}>Enter your Google account email. Joog opens your browser to authorize mail, calendar, tasks, contacts, and Drive.</Text>
+          <Text color={color.muted}>{`Enter your ${info.provider} account email. ${info.name} opens your browser to authorize mail, calendar, tasks, contacts, and ${backend === 'joom' ? 'OneDrive' : 'Drive'}.`}</Text>
           <Box marginTop={1}><Text color={color.accent}>Email</Text></Box><Box height={2} overflow="hidden"><Input value={email} width={columns - 6} onChange={setEmail}/></Box>
           <Text color={color.muted}>Need a client ID first? Esc, then E opens enrollment.</Text>
         </> : screen === 'enroll' ? <>
-          <Text color={color.muted}>Use OAuth credentials for a Desktop app from Google Cloud Console. Saving replaces the shared OAuth client.</Text>
-          <Box marginTop={1}><Text color={color.accent}>{field === 0 ? 'Client ID' : 'Client secret'} · {field + 1}/2</Text></Box>
+          <Text color={color.muted}>{info.secret ? 'Use OAuth credentials for a Desktop app from Google Cloud Console. Saving replaces the shared OAuth client.' : 'Use the Application client ID from Microsoft Entra. Register a mobile and desktop application with http://localhost/oauth/callback.'}</Text>
+          <Box marginTop={1}><Text color={color.accent}>{field === 0 ? info.secret ? 'Client ID' : 'Application client ID' : 'Client secret'}{info.secret ? ` · ${field + 1}/2` : ''}</Text></Box>
           <Box height={2} overflow="hidden"><Input key={field} value={field === 0 ? clientId : clientSecret} width={columns - 6} masked={field === 1} onChange={field === 0 ? setClientId : setClientSecret}/></Box>
-          <Text color={color.muted}>The client secret is masked and sent to Joog over stdin.</Text>
+          <Text color={color.muted}>{info.secret ? 'The client secret is masked and sent to Joog over stdin.' : 'Joom uses a public client with PKCE. Enter saves the client ID.'}</Text>
         </> : <>
-          <Text bold color={color.text}>{logoutAccount}</Text><Box marginTop={1}><Text color={color.muted}>This removes the account's local Joog tokens. Google permissions remain until you revoke them in your Google Account.</Text></Box>
+          <Text bold color={color.text}>{logoutAccount}</Text><Box marginTop={1}><Text color={color.muted}>{`This removes the account's local ${info.name} tokens. ${info.provider} permissions remain until you revoke them in your account settings.`}</Text></Box>
         </>}
       </Box>
       <Text>{' '}</Text>
     </Box>}
     <Box paddingX={1} height={1}><Text color={color.success} wrap="truncate">{error ? ' ' : notice || ' '}</Text></Box>
-    <Box paddingX={1} height={borderedFooter ? 3 : 1} borderStyle={borderedFooter ? 'single' : undefined} borderColor={color.border}><Text color={color.muted} wrap="truncate">{busy ? 'Esc cancel' : error ? 'Enter / Esc back · j/k scroll · q quit' : editing ? screen === 'login' ? 'Enter log in · Esc back · Ctrl+C quit' : 'Tab change field · Enter next/save · Esc back' : screen === 'logout' ? 'Enter log out · Esc cancel' : columns >= 90 ? '[Tab] Switch pane  [j/k] Navigate  [Enter] Select  [G] Refresh  [Q] Quit' : 'Tab pane · j/k move · Enter · G refresh · Q quit'}</Text></Box>
+    <Box paddingX={1} height={borderedFooter ? 3 : 1} borderStyle={borderedFooter ? 'single' : undefined} borderColor={color.border}><Text color={color.muted} wrap="truncate">{busy ? 'Esc cancel' : error ? 'Enter / Esc back · j/k scroll · q quit' : editing ? screen === 'login' ? 'Enter log in · Esc back · Ctrl+C quit' : info.secret ? 'Tab change field · Enter next/save · Esc back' : 'Enter save client ID · Esc back' : screen === 'logout' ? 'Enter log out · Esc cancel' : columns >= 90 ? '[Tab] Switch pane  [j/k] Navigate  [Enter] Select  [G] Refresh  [Q] Quit' : 'Tab pane · j/k move · Enter · G refresh · Q quit'}</Text></Box>
   </Box>;
 }

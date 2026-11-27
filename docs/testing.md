@@ -13,13 +13,19 @@ results apply to the operating system and Node.js version you use.
 
 ## Automated coverage
 
-`npm run check` checks TypeScript without emitting files. `npm run build` emits
+`npm run check` checks application and screenshot-tool TypeScript without emitting files. `npm run build` emits
 the CLI and its modules into `dist/`. `npm test` runs the files in `test/` through
 Node's test runner and `tsx`.
 
+Keep tests focused on runtime behavior and backend contracts. Reuse existing
+flows for shared behavior. Check fixed copy, palette values, and layout variants
+through the screenshot workflow instead of adding separate smoke tests.
+
 UI tests render Ink components with synthetic accounts and content. They cover
 navigation, forms, auth actions, cancellation, account switching, errors, and
-scrolling. People and Drive tests cover contact fields and search, folder navigation,
+scrolling. Joom tests validate request parameters for all five services,
+Microsoft client-ID enrollment, same-email provider isolation, and provider
+switching with an unavailable backend. People and Drive tests cover contact fields and search, folder navigation,
 exports, private downloads, existing-file errors, and cancellation. Model tests cover response normalization and display sanitization.
 Subprocess tests use fixture executables to inspect arguments, stdin, JSON
 request files, cleanup, and cancellation at the Joog binary boundary.

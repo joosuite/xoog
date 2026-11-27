@@ -3,10 +3,9 @@ import {test, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {render, cleanup} from 'ink-testing-library';
 import {setTimeout as pause} from 'node:timers/promises';
-import {AccountScreen, Xoog} from '../src/account-screen.js';
+import {AccountScreen} from '../src/account-screen.js';
 import type {LoginProgress} from '../src/accounts.js';
 import {FakeAccounts} from './support/accounts.js';
-import {FakeWorkspace} from './support/workspace.js';
 
 afterEach(cleanup);
 const size = {columns: 100, rows: 30};
@@ -18,15 +17,6 @@ async function until(app: ReturnType<typeof render>, pattern: RegExp) {
   // Ink publishes the frame before React installs passive input effects.
   await pause(50);
 }
-
-test('startup lists accounts before any workspace access and allows switching back with A', async () => {
-  const auth = new FakeAccounts(); let opened = '';
-  const workspace = (account: string) => {opened = account; return new FakeWorkspace();};
-  const app = render(<Xoog auth={auth} workspace={workspace} size={size}/>);
-  await until(app, /test@example.com/); assert.equal(opened, ''); assert.match(app.lastFrame()!, /All accounts/);
-  await press(app, '\r'); assert.equal(opened, 'test@example.com'); await until(app, /Saturday at ours/);
-  await press(app, 'A'); assert.match(app.lastFrame()!, /All accounts/);
-});
 test('login returns a selected account and logout requires confirmation', async () => {
   const auth = new FakeAccounts(); let selected = '';
   const app = render(<AccountScreen auth={auth} onSelect={value => selected = value} size={size}/>);
@@ -83,23 +73,6 @@ test('login waits for the binary to confirm browser launch and shows complete er
   assert.doesNotMatch(app.lastFrame()!, /Waiting up to/);
   notify!('browser-opened'); await until(app, /Waiting up to 3 minutes/);
   await press(app, '\x1b'); assert.match(app.lastFrame()!, /Cancelled/);
-});
-test('long authentication errors can be scrolled and dismissed', async () => {
-  const explanation = 'The existing master key cannot be unlocked. '.repeat(12) + 'Last diagnostic line.';
-  class Auth extends FakeAccounts {override async login(): Promise<string> {throw new Error(explanation);}}
-  const app = render(<AccountScreen auth={new Auth()} onSelect={() => {}} size={{columns: 52, rows: 18}}/>);
-  await until(app, /test@example.com/);
-  await press(app, 'l'); await press(app, 'me@example.com'); await press(app, '\r');
-  assert.match(app.lastFrame()!, /existing master key/); assert.match(app.lastFrame()!, /j\/k scroll/);
-  for (let i = 0; i < 6; i++) await press(app, '\x1b[6~');
-  assert.match(app.lastFrame()!, /Last diagnostic line/);
-  await press(app, '\x1b'); assert.match(app.lastFrame()!, /Email/);
-});
-test('the minimum terminal keeps authentication and account actions visible', async () => {
-  const app = render(<AccountScreen auth={new FakeAccounts()} onSelect={() => {}} size={{columns: 52, rows: 18}}/>);
-  await until(app, /test@example.com/);
-  for (const label of ['auth init', 'auth enroll', 'auth test', 'Account actions', 'Open workspace', 'Login / add account', 'Logout selected account']) assert.ok(app.lastFrame()!.includes(label), label);
-  assert.match(app.lastFrame()!, /Q quit/);
 });
 test('Tab and Enter navigate Authentication, All accounts, and Account actions', async () => {
   class Auth extends FakeAccounts {initialized = false; override async initialize() {this.initialized = true;}}

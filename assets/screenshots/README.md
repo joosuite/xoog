@@ -1,12 +1,15 @@
 # Xoog screenshots
 
-These images show actual React and Ink output captured from a pseudoterminal.
+These images show actual React and Ink output captured in a virtual terminal.
 The Google account, Simon Delcourt at `simon.delcourt@example.com`, is fictitious.
 Every message, event, task, contact, and file is synthetic. The account uses the
 reserved `example.com` domain. No Google account is signed in for capture.
 
 | Image | Terminal | Theme |
 | --- | --- | --- |
+| [Microsoft accounts](microsoft-accounts.png) | 120 columns by 30 rows | Dark |
+| [Outlook mail](microsoft-mail.png) | 140 columns by 36 rows | Dark |
+| [OneDrive](microsoft-drive.png) | 140 columns by 36 rows | Dark |
 | [Accounts](accounts.png) | 120 columns by 30 rows | Dark |
 | [Mail](mail.png) | 140 columns by 36 rows | Dark |
 | [Calendar](calendar.png) | 140 columns by 36 rows | Dark |
@@ -22,33 +25,35 @@ reserved `example.com` domain. No Google account is signed in for capture.
 
 ## Regenerate the images
 
-Capture requires macOS or Linux, Python 3, Pillow, and pyte in addition to
-Xoog's normal development dependencies. These are documentation tools, not
-runtime requirements. From a source checkout of Xoog:
+Capture uses the TypeScript tools included in Xoog's development dependencies.
+From a source checkout:
 
 ```sh
 npm ci
-npm run build
-python3 -m venv .venv-screenshots
-.venv-screenshots/bin/python -m pip install Pillow pyte
-.venv-screenshots/bin/python scripts/capture-screenshots.py
+npm run screenshots
 ```
 
-Use `scripts/capture-screenshots.py --review` to check People, Drive, attachment
-lists, previews, and download forms at the 52-by-18 minimum and in light theme. These captures go
+Use `npm run screenshots:review` to check People, Drive, attachment lists,
+previews, and download forms at the 52-by-18 minimum and in light theme. These captures go
 to `.impeccable/review/`. They omit the extra documentation banner so the actual
 minimum viewport is tested. Capture never confirms a download or opens a viewer.
 
-The script uses Menlo on macOS and DejaVu Sans Mono on Linux. Install the DejaVu
-font package if your Linux system does not have it. Terminal fonts differ, so
-the PNG font is a capture choice rather than an application dependency.
+The renderer uses Menlo on macOS, DejaVu Sans Mono or Liberation Mono on Linux,
+and Consolas on Windows. Install one of those fonts if capture reports it missing.
+Terminal fonts differ, so the PNG font is a capture choice rather than an
+application dependency.
 
-`scripts/screenshot-preview.mjs` renders the actual application with read-only
+`scripts/screenshot-preview.tsx` renders the actual application with read-only
 fixtures, a fixed date of November 26, 2026, and a fictitious account. It never
 invokes Joog or reads saved credentials. The capture wrapper adds a
 **SAMPLE DATA / FICTIONAL ACCOUNT** banner. The production app has no fixture mode.
-The correspondence, appointments, and errands are in `scripts/screenshot-content.mjs`.
+The correspondence, appointments, and errands are in `scripts/screenshot-content.ts`.
+
+`scripts/capture-screenshots.tsx` drives keyboard input through Ink's terminal
+streams. `@xterm/headless` interprets the ANSI output, and `scripts/terminal-image.ts`
+uses `@napi-rs/canvas` to write PNGs with their provenance. Both libraries are
+development dependencies. `npm run check` typechecks the scripts as well as the app.
 
 `manifest.json` records the dimensions, themes, identity, date, and source of each
 image. The same origin information is embedded in the PNG metadata. Inspect all
-twelve images after capture before committing them.
+fifteen images after capture before committing them.

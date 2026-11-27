@@ -1,7 +1,8 @@
 // Fictional correspondence and appointments for the public screenshots.
+import {type Attachment} from '../src/model.js';
 export const account = 'simon.delcourt@example.com';
 
-export const messages = {
+export const messages: Record<string, {from: string; subject: string; body: string; to?: string; attachments?: Attachment[]}> = {
   'mail-0': {
     from: 'Jeanne Fleury <jeanne.fleury@example.com>',
     subject: 'Saturday at ours?',
@@ -40,7 +41,7 @@ export const messages = {
   },
 };
 
-export const events = {
+export const events: Record<string, {title: string; hours: [number, number, number, number]; location: string; description: string; attendees: string[]}> = {
   'event-1': {
     title: 'Pick up the car',
     hours: [17, 30, 18, 0],
@@ -87,11 +88,13 @@ export const tasks = {
 };
 
 // Valid, fictional PDF and CSV files for the attachment captures.
-messages['mail-4'].attachments = [
+const invoice = messages['mail-4']!;
+invoice.attachments = [
   {partId: '1', name: 'invoice-114.pdf', mimeType: 'application/pdf', size: 692, data: "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA-PiA-PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4-CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggMTQ3ID4-CnN0cmVhbQpCVCAvRjEgMTggVGYgNTAgNzgwIFRkIChJbnZvaWNlIDExNCkgVGogL0YxIDEyIFRmIDAgLTMyIFRkIChOb3ZlbWJlciAyMDI2IC0gU2VydmljZXMpIFRqIDAgLTI0IFRkIChIb3VyczogMTgpIFRqIDAgLTI0IFRkIChUb3RhbDogRVVSIDU0MC4wMCkgVGogRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDMxMSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjUwOQolJUVPRgo"},
   {partId: '2', name: 'hours-november.csv', mimeType: 'text/csv', size: 60, data: Buffer.from('Date,Hours,Note\n2026-11-24,6,On site\n2026-11-25,6,Repairs\n2026-11-26,6,Finishing\n').toString('base64url')},
 ];
-messages['mail-4'].attachments[1].size = Buffer.from(messages['mail-4'].attachments[1].data, 'base64url').length;
+const hours = invoice.attachments[1]!;
+hours.size = Buffer.from(hours.data!, 'base64url').length;
 
 export const people = [
   {resourceName: 'people/jeanne', names: [{displayName: 'Jeanne Fleury'}], emailAddresses: [{value: 'jeanne.fleury@example.com'}], phoneNumbers: [{value: '+33 6 12 34 56 78'}], addresses: [{formattedValue: '18 rue des Lilas\n59000 Lille'}], birthdays: [{date: {month: 2, day: 3}}], biographies: [{value: 'Ring the downstairs bell. The upstairs one still does not work.'}], memberships: [{contactGroupMembership: {contactGroupResourceName: 'contactGroups/starred'}}]},

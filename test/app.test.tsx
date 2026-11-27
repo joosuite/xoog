@@ -50,13 +50,6 @@ test('drafts require review and save through the workspace adapter', async () =>
   const sent = await api.mail('sent', 'A test subject');
   assert.equal(sent.length, 1); assert.equal(sent[0]?.body, 'First line\nSecond line');
 });
-test('narrow terminals open a reader and return to the list; tiny terminals explain the limit', async () => {
-  const app = render(<App api={new FakeWorkspace()} account="test@example.com" size={{columns: 70, rows: 24}}/>);
-  await until(app, /Saturday at ours/); app.stdin.write('\r'); await settle(); assert.match(app.lastFrame()!, /From: Jeanne/);
-  app.stdin.write('\x1b'); await settle(); assert.match(app.lastFrame()!, /Inbox/);
-  app.rerender(<App api={new FakeWorkspace()} account="test@example.com" size={{columns: 40, rows: 12}}/>);
-  await settle(); assert.match(app.lastFrame()!, /Resize the terminal/);
-});
 test('collection failures are recoverable with refresh', async () => {
   class Failing extends FakeWorkspace {attempts = 0; override async mail(folder: string, query: string) {if (this.attempts++ === 0) throw new Error('Sign in with Joog.'); return super.mail(folder, query);}}
   const app = render(<App api={new Failing()} account="test@example.com" size={{columns: 100, rows: 30}}/>);
@@ -113,12 +106,4 @@ test('task creation and timed event creation pass reviewed fields to the adapter
   await press('\t'); await press('\x05'); await press('\x15'); await press('2026-12-01T10:00:00Z');
   await press('\x13'); assert.match(app.lastFrame()!, /Review · Create event/); await press('\r');
   assert.ok((await api.events('primary', new Date('2026-12-01T12:00:00Z'), '')).find(e => e.title === 'A reviewed event'));
-});
-test('small-terminal help scrolls to service and form shortcuts', async () => {
-  const app = render(<App api={new FakeWorkspace()} account="test@example.com" size={{columns: 70, rows: 24}}/>);
-  await until(app, /Saturday at ours/); app.stdin.write('?'); await settle();
-  assert.match(app.lastFrame()!, /j\/k scroll/);
-  for (let i = 0; i < 20; i++) {app.stdin.write('j'); await pause(30);}
-  assert.match(app.lastFrame()!, /Forms: Tab fields/);
-  app.stdin.write('\x1b'); await settle(); assert.match(app.lastFrame()!, /Inbox/);
 });

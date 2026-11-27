@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {JoogAccounts} from '../src/accounts.js';
+import {CliAccounts} from '../src/accounts.js';
 
 test('account discovery invokes auth list, accepts its array, and forwards custom state and cancellation', {skip: process.platform === 'win32'}, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'xoog-accounts-'));
@@ -16,7 +16,7 @@ const value=fs.readFileSync(${JSON.stringify(response)},'utf8');
 if(value==='wait') setTimeout(()=>console.log('[]'),20000);
 else process.stdout.write(value);
 `, {mode: 0o700});
-  const auth = new JoogAccounts({binary, home: directory});
+  const auth = new CliAccounts({binary, home: directory});
   await writeFile(response, '[]');
   assert.deepEqual(await auth.list(), {accounts: []});
   await writeFile(response, JSON.stringify(['bernard@example.com', 'jeanne@example.com', 'bernard@example.com', ' \u001b[31modile@example.com\u001b[0m ', '']));
@@ -35,7 +35,7 @@ else process.stdout.write(value);
   await assert.rejects(auth.list(cancelled.signal), {name: 'AbortError'});
 });
 test('account discovery reports a missing Joog executable', async () => {
-  const auth = new JoogAccounts({binary: join(tmpdir(), 'missing-xoog-joog-executable')});
+  const auth = new CliAccounts({binary: join(tmpdir(), 'missing-xoog-joog-executable')});
   await assert.rejects(auth.list(), /Joog was not found/);
 });
 
@@ -55,7 +55,7 @@ let input=''; process.stdin.on('data', s => input += s); process.stdin.on('end',
  if (input.includes('reject-secret')) {console.error(input);process.exit(1);}
  console.log(JSON.stringify(args.includes('login') ? {account:args[args.indexOf('auth')+1]} : {}));
 });`, {mode: 0o700});
-  const auth = new JoogAccounts({binary, home: directory});
+  const auth = new CliAccounts({binary, home: directory});
   await auth.initialize(); await auth.enroll('desktop-client', 'private-client-secret'); await auth.test();
   assert.equal(await auth.login('me@example.com'), 'me@example.com');
   await auth.logout('me@example.com');

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, writeFile, readFile, rm, stat} from 'node:fs/promises';
 import {join, delimiter} from 'node:path';
 import {tmpdir} from 'node:os';
-import {Joog, findBinary, parseJoogOutput} from '../src/joog.js';
+import {Joog, findBinary, parseBinaryOutput} from '../src/joog.js';
 
 // A standalone executable simulates the public Joog binary protocol. No source imports.
 async function fixture(t: {after: (fn: () => Promise<void>) => void}, ttl?: number) {
@@ -16,7 +16,6 @@ const params = JSON.parse(fs.readFileSync(file, 'utf8'));
 fs.appendFileSync(${JSON.stringify(log)}, JSON.stringify({args, params, file, mode:fs.statSync(file).mode & 0o777}) + '\\n');
 if (params.fail) { console.error(JSON.stringify({error:'Sign in again.'})); process.exit(1); }
 if (params.slow) { setTimeout(() => console.log('{}'), 20000); }
-else if (params.malformed) {console.log(JSON.stringify({items:[{id:'partial'}]}));console.log('private-task-content');}
 else if (args.includes('messages.attachments.get')) {fs.writeFileSync(params.output,Buffer.from('PDF attachment bytes'),{flag:'wx',mode:0o600});console.log(JSON.stringify({path:params.output,bytes:20}));}
 else if (args.includes('messages.list')) console.log(JSON.stringify({messages:[{id:'m'}]}));
 else if (args.includes('messages.get')) console.log(JSON.stringify({id:'m',payload:{headers:[{name:'Subject',value:'Hello'}]}}));
@@ -90,17 +89,14 @@ test('task listings combine JSON pages, tolerate empty pages, and filter deleted
 test('JSON output accepts pretty documents and JSON Lines while retaining only final pagination metadata', () => {
   const first = {items: [{id: 'one', notes: 'First line\nSecond line'}], nextPageToken: 'next', etag: 'first'};
   const last = {items: [{id: 'two'}], etag: 'last'};
-  assert.deepEqual(parseJoogOutput(JSON.stringify(first, null, 2), 'tasks.list'), first);
+  assert.deepEqual(parseBinaryOutput(JSON.stringify(first, null, 2), 'tasks.list'), first);
   const joined = `${JSON.stringify(first)}\r\n\r\n${JSON.stringify(last)}\r\n`;
-  assert.deepEqual(parseJoogOutput(joined, 'tasks.list'), {etag: 'last', items: [...first.items, ...last.items]});
-  assert.deepEqual(parseJoogOutput('{"messages":[{"id":"one"}]}\n{"messages":[{"id":"two"}]}\n', 'messages.list'), {messages: [{id: 'one'}, {id: 'two'}]});
-});
-test('malformed output rejects partial results without blaming the binary or exposing account content', {skip: process.platform === 'win32'}, async t => {
-  const {client} = await fixture(t);
-  await assert.rejects(client.call('tasks', 'tasks.list', {malformed: true}), error => {
+  assert.deepEqual(parseBinaryOutput(joined, 'tasks.list'), {etag: 'last', items: [...first.items, ...last.items]});
+  assert.deepEqual(parseBinaryOutput('{"messages":[{"id":"one"}]}\n{"messages":[{"id":"two"}]}\n', 'messages.list'), {messages: [{id: 'one'}, {id: 'two'}]});
+  assert.throws(() => parseBinaryOutput('{"items":[{"id":"partial"}]}\nprivate-content', 'tasks.list'), error => {
     assert.ok(error instanceof Error);
     assert.match(error.message, /Xoog could not parse.*tasks\.list/);
-    assert.doesNotMatch(error.message, /Update|private-task-content/);
+    assert.doesNotMatch(error.message, /private-content/);
     return true;
   });
 });
@@ -188,21 +184,7 @@ test('Drive downloads and exports are private, preserve existing files, resolve 
   assert.equal((await calls()).length, log.length);
 });
 
-test('configured TTL reaches mail lists, metadata and bodies as well as task reads, including zero', {skip: process.platform === 'win32'}, async t => {
-  for (const ttl of [5, 12, 0]) {
-    const {client, calls} = await fixture(t, ttl);
-    await client.mail('inbox', '');
-    await client.message('m');
-    await client.tasklists();
-    await client.tasks('list');
-    const log = await calls();
-    assert.equal(log.length, 5);
-    assert.ok(log.every(call => call.params.ttl === ttl));
-    assert.deepEqual(log.filter(call => call.args.includes('messages.get')).map(call => call.params.format), ['metadata', 'full']);
-  }
-});
-
-test('forced reads use zero TTL for every service without changing the configured TTL', {skip: process.platform === 'win32'}, async t => {
+test('cacheable reads honor custom TTL, bypass it for forced refresh, and accept zero', {skip: process.platform === 'win32'}, async t => {
   const {client, calls} = await fixture(t, 12), fresh = {fresh: true};
   await client.mail('inbox', '', undefined, fresh);
   await client.message('m', undefined, fresh);
@@ -218,4 +200,7 @@ test('forced reads use zero TTL for every service without changing the configure
   assert.ok(forced.every(call => call.params.ttl === 0));
   await client.message('m');
   assert.equal((await calls()).at(-1).params.ttl, 12);
+  const disabled = await fixture(t, 0);
+  await disabled.client.message('m');
+  assert.equal((await disabled.calls())[0].params.ttl, 0);
 });

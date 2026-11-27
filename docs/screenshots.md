@@ -84,3 +84,15 @@ an item and `Esc` to return to the list.
 The [capture guide](../assets/screenshots/README.md) documents dimensions, fixtures,
 and the command to regenerate the images. These captures are real terminal
 renders, not image mockups.
+
+## Microsoft through Joom
+
+The account header switches between Google and Microsoft. Microsoft uses the
+same workspace for Outlook, Calendar, To Do, Contacts, and OneDrive.
+These captures use the same fictitious account, with synthetic Microsoft content.
+
+![Microsoft account management in Xoog](../assets/screenshots/microsoft-accounts.png)
+
+![Outlook mail workspace through Joom](../assets/screenshots/microsoft-mail.png)
+
+![OneDrive folders and original Office files through Joom](../assets/screenshots/microsoft-drive.png)

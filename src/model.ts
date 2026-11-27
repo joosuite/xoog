@@ -1,5 +1,6 @@
 import {stripVTControlCharacters} from 'node:util';
 import {convert} from 'html-to-text';
+import {type BackendId} from './backend.js';
 
 export type DraftView = 'mail' | 'calendar' | 'tasks';
 export type View = DraftView | 'people' | 'drive';
@@ -39,6 +40,9 @@ export function driveFileType(file: DriveFile): string {
     [folderMime]: 'Folder', 'application/vnd.google-apps.document': 'Google Docs',
     'application/vnd.google-apps.spreadsheet': 'Google Sheets', 'application/vnd.google-apps.presentation': 'Google Slides',
     'application/vnd.google-apps.drawing': 'Google Drawings', 'application/pdf': 'PDF',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word document',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel workbook',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint presentation',
   };
   return labels[mime] ?? mime;
 }
@@ -48,6 +52,7 @@ export type EventDraft = {title: string; start: string; end: string; location: s
 export type TaskDraft = {title: string; due: string; notes: string};
 export type ReadOptions = {fresh?: boolean};
 export interface Workspace {
+  readonly backend?: BackendId;
   mail(folder: string, query: string, signal?: AbortSignal, options?: ReadOptions): Promise<Mail[]>;
   message(id: string, signal?: AbortSignal, options?: ReadOptions): Promise<Mail>;
   downloadAttachment(messageId: string, attachment: Attachment, destination: string, signal?: AbortSignal): Promise<void>;

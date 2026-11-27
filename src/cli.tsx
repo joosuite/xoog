@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import React from 'react';
 import {render} from 'ink';
-import {Xoog} from './account-screen.js';
+import {ProviderScreen} from './provider-screen.js';
 import {Joog, findBinary} from './joog.js';
-import {JoogAccounts} from './accounts.js';
+import {CliAccounts} from './accounts.js';
+import {Joom} from './joom.js';
 import {clean} from './model.js';
 import {setTheme} from './theme.js';
 import {parseOptions} from './cli-options.js';
@@ -13,8 +14,10 @@ const help = `Xoog · mail, calendar, tasks, People, and Drive in your terminal
 Usage: xoog [options]
 
   --joog PATH         Joog executable; defaults to JOOG_BIN, PATH, or a sibling binary
-  --home PATH         Forward Joog's custom state directory
-  --ttl MINUTES       Reuse Joog's cached responses (default: 5; 0 disables caching)
+  --joom PATH         Joom executable; defaults to JOOM_BIN, PATH, or a sibling binary
+  --backend NAME      Initial provider: joog (default) or joom
+  --home PATH         Forward a custom state directory to both backends
+  --ttl MINUTES       Reuse cached responses (default: 5; 0 disables caching)
   --calendar ID       Initial calendar (default: primary)
   --tasklist ID       Initial task list (default: @default)
   --theme NAME        dark (default) or light
@@ -24,9 +27,10 @@ Usage: xoog [options]
 
 The first screen manages accounts. I initializes the vault, E enrolls a client,
 T tests authentication, L logs in, and X logs out the selected account.
+Press 1 for Google or 2 for Microsoft on the account screen.
 Press A in the workspace to return to accounts.
 
-Xoog uses Joog's JSON commands and encrypted credentials. Node.js 22+ required.
+Xoog uses Joog and Joom binaries. Node.js 22+ required.
 Press ? inside the app for keyboard shortcuts.
 `;
 
@@ -37,9 +41,14 @@ async function main() {
   if (values.theme !== 'dark' && values.theme !== 'light') throw new Error('--theme must be dark or light.');
   setTheme(values.theme);
   if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Error('Xoog needs an interactive terminal. Use --help for usage.');
-  const binary = await findBinary(values.joog || process.env.JOOG_BIN);
-  const auth = new JoogAccounts({binary, home: values.home});
-  const workspace = (account: string) => new Joog({account, binary, home: values.home, ttl: values.ttl});
+  const [google, microsoft] = await Promise.all([
+    findBinary(values.joog || process.env.JOOG_BIN),
+    findBinary(values.joom || process.env.JOOM_BIN, process.env.PATH ?? '', 'joom'),
+  ]);
+  const connections = [
+    {id: 'joog' as const, auth: new CliAccounts({binary: google, home: values.home}), workspace: (account: string) => new Joog({account, binary: google, home: values.home, ttl: values.ttl})},
+    {id: 'joom' as const, auth: new CliAccounts({binary: microsoft, home: values.home, backend: 'joom'}), workspace: (account: string) => new Joom({account, binary: microsoft, home: values.home, ttl: values.ttl})},
+  ];
   const alternate = !values['no-alt-screen'];
   if (alternate) process.stdout.write('\x1b[?1049h');
   let restored = false;
@@ -47,7 +56,7 @@ async function main() {
   const terminate = () => {restore(); process.exit(0);};
   process.once('exit', restore); process.once('SIGTERM', terminate); process.once('SIGHUP', terminate);
   try {
-    const app = render(<Xoog auth={auth} workspace={workspace} initialCalendar={values.calendar} initialTasklist={values.tasklist}/>, {exitOnCtrlC: true, patchConsole: false});
+    const app = render(<ProviderScreen connections={connections} initialBackend={values.backend} initialCalendar={values.calendar} initialTasklist={values.tasklist}/>, {exitOnCtrlC: true, patchConsole: false});
     await app.waitUntilExit();
   } finally {
     restore(); process.off('exit', restore); process.off('SIGTERM', terminate); process.off('SIGHUP', terminate);

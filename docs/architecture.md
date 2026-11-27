@@ -1,8 +1,8 @@
-# Xoog's Joog binary adapter
+# Xoog's binary adapters
 
 Xoog is a Node.js application. React and Ink render its terminal output.
 `src/joog.ts` implements the `Workspace` interface by spawning a Joog executable.
-Only the Joog adapter is available at runtime. In-memory substitutes live in
+Google and Microsoft adapters are available at runtime. In-memory substitutes live in
 `test/support/` for regression tests. Documentation screenshots use their own
 read-only fixtures in `scripts/`. Both are excluded from the distributable.
 
@@ -99,7 +99,8 @@ refresh preserve the selected account. Login selects its returned account;
 logout chooses an adjacent remaining account. Account rows and their scrollbars
 use the available height after reserving the always-visible action controls.
 
-`src/accounts.ts` discovers accounts by running `joog --json auth list`.
+`src/accounts.ts` discovers accounts by running the selected backend with
+`--json auth list`.
 It validates Joog's JSON array, sanitizes account names, removes duplicates,
 and preserves their order. The first account is initially selected. Login and
 logout refresh the list through the same command. `--home PATH` is forwarded
@@ -191,3 +192,31 @@ in `finally`. Google Docs, Slides, and Drawings export to PDF, and Sheets export
 Excel. Folders, blocked downloads, and unsupported Google types have no download
 action. `DriveDownload` owns cancellation while its path form is open. Other
 workspace shortcuts remain inactive until it closes.
+
+## Microsoft through Joom
+
+The account screen offers Google and Microsoft with keys 1 and 2. Each connection
+owns its account manager and workspace factory. Switching remounts the account
+screen and aborts pending reads. Identical emails never identify the provider.
+The workspace header names the active provider. Returning with A preserves the
+provider for account management and switching.
+
+CliAccounts runs authentication commands through either binary. Joom enrollment
+sends only client_id over stdin. Microsoft connectivity test text reports only
+endpoint reachability. Authentication and workspace errors name the selected
+backend and provider. No backend source tree is imported at runtime.
+
+Joom reuses compatible JSON normalization and calendar/task writes. Its adapter
+removes unsupported mail format, task showHidden, and Drive supportsAllDrives
+parameters. It sends MIME reply headers without Google's threadId. All-mail
+listing omits Gmail's negative trash/spam query. Contacts requests omit Google
+field masks and memberships. OneDrive lists use parent queries and name ordering,
+and normalize inode/directory into the internal folder type. Original Office
+files download through files.get. Private request files, pagination, TTL, forced
+reads, cancellation, and exclusive downloads apply to both backends.
+
+Microsoft exposes only Contacts and OneDrive folder collections. Archive is
+blocked before an operation is sent. Google-only collections stay out of the
+Microsoft navigation. Outlook's search limitations are documented in the
+workspace guide. Local fixtures do not exercise live Microsoft authorization,
+mail delivery, or file mutations.

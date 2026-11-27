@@ -2,7 +2,7 @@
   "name": "xoog",
   "version": "0.1.0",
   "private": true,
-  "description": "Xoog, a React terminal workspace for Joog mail, calendar, tasks, People and Drive",
+  "description": "Xoog, a React terminal workspace for Google through Joog and Microsoft through Joom",
   "type": "module",
   "license": "Apache-2.0",
   "files": [
@@ -25,8 +25,10 @@
     "dev": "tsx src/cli.tsx",
     "build": "tsc",
     "start": "node dist/cli.js",
-    "check": "tsc --noEmit",
-    "test": "tsx --test test/*.test.ts test/*.test.tsx"
+    "check": "tsc --noEmit && tsc --project tsconfig.scripts.json",
+    "test": "tsx --test test/*.test.ts test/*.test.tsx",
+    "screenshots": "tsx scripts/capture-screenshots.tsx",
+    "screenshots:review": "tsx scripts/capture-screenshots.tsx --review"
   },
   "dependencies": {
     "html-to-text": "^9.0.5",
@@ -35,9 +37,11 @@
     "wrap-ansi": "^9.0.2"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.2.1",
     "@types/html-to-text": "^9.0.4",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",
+    "@xterm/headless": "^6.0.0",
     "ink-testing-library": "^4.0.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"

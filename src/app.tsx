@@ -1,5 +1,5 @@
 /*
-THESIS: One keyboard workspace for mail, calendar, tasks, People, and Drive through Joog binaries.
+THESIS: One keyboard workspace for mail, calendar, tasks, People, and Drive through Joog and Joom binaries.
 OWN-WORLD: Character borders, navy or light ground, native font, cobalt selection.
 STORY: Choose a service and collection, scan rows, read the selected item, act.
 FIRST VIEWPORT: Header and service tabs above folders, list, and preview; shortcuts below.
@@ -13,6 +13,7 @@ import wrapAnsi from 'wrap-ansi';
 import {clean, line, dayKey, dateLabel, timeLabel, shiftDay, views, viewTitle, isFolder, driveDownload, driveFileType, type ReadOptions, type Person, type DriveFile, type DraftView, type Choice, type View, type Workspace, type Item, type Mail, type Event, type Task, type MailDraft, type EventDraft, type TaskDraft} from './model.js';
 import {DraftForm, initialValues} from './form.js';
 import {color} from './theme.js';
+import {backendInfo} from './backend.js';
 import {ScrollArea} from './scroll-area.js';
 import {DatePicker} from './date-picker.js';
 import {AttachmentScreen} from './attachment-screen.js';
@@ -165,8 +166,12 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
   const busyRef = useRef(false);
   const [notice, setNotice] = useState('');
   const [actionError, setActionError] = useState('');
+  const microsoft = api.backend === 'joom';
+  const accountFolders = microsoft ? folders.map(folder => folder.id === 'starred' ? {...folder, title: 'Flagged'} : folder) : folders;
+  const accountPeople = microsoft ? peopleCollections.filter(choice => choice.id === 'contacts') : peopleCollections;
+  const accountDrive = microsoft ? [{id: 'root', title: 'OneDrive'}] : driveCollections;
   const query = queries[view];
-  const choices = view === 'mail' ? folders : view === 'calendar' ? calendars : view === 'tasks' ? tasklists : view === 'people' ? peopleCollections : driveCollections;
+  const choices = view === 'mail' ? accountFolders : view === 'calendar' ? calendars : view === 'tasks' ? tasklists : view === 'people' ? accountPeople : accountDrive;
   const collection = view === 'mail' ? folder : view === 'calendar' ? calendar : view === 'tasks' ? tasklist : view === 'people' ? peopleCollection : driveCollection;
   const currentItems = data.view === view ? data.items : [];
   const localSearch = view === 'tasks' || view === 'people';
@@ -319,8 +324,8 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
     if (view === 'mail') {
       const mail = item as Mail;
       if (input === 'u') void act(() => api.mark(mail.id, mail.unread ? 'read' : 'unread'), mail.unread ? 'Marked as read.' : 'Marked as unread.');
-      if (input === 's') void act(() => api.mark(mail.id, mail.starred ? 'unstar' : 'star'), mail.starred ? 'Star removed.' : 'Message starred.');
-      if (input === 'a') void act(() => api.mark(mail.id, 'archive'), 'Message archived.');
+      if (input === 's') void act(() => api.mark(mail.id, mail.starred ? 'unstar' : 'star'), mail.starred ? microsoft ? 'Flag removed.' : 'Star removed.' : microsoft ? 'Message flagged.' : 'Message starred.');
+      if (input === 'a') {if (microsoft) setActionError('Archiving is not available through Joom.'); else void act(() => api.mark(mail.id, 'archive'), 'Message archived.');}
       if (input === 'r') {
         if (detail.mail?.id === mail.id) compose(detail.mail);
         else void act(async () => compose(await api.message(mail.id)), 'Reply ready.');
@@ -330,7 +335,7 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
   }, {isActive: !draft && !pickingDate && !attachmentMessage && !downloading});
 
   if (columns < 52 || rows < 18) return <Box width={columns} backgroundColor={color.background} flexDirection="column"><Text color={color.warning}>Xoog needs at least 52 columns and 18 rows.</Text><Text color={color.text}>Resize the terminal. Press q to quit.</Text></Box>;
-  const collectionTitle = view === 'drive' && drivePath.length ? [driveCollections.find(choice => choice.id === driveCollection)?.title, ...drivePath.map(folder => folder.title)].join(' / ') : choices.find(c => c.id === collection)?.title ?? collection;
+  const collectionTitle = view === 'drive' && drivePath.length ? [accountDrive.find(choice => choice.id === driveCollection)?.title, ...drivePath.map(folder => folder.title)].join(' / ') : choices.find(c => c.id === collection)?.title ?? collection;
   const shownMessage = item && detail.mail?.id === item.id ? detail.mail : undefined;
   const detailLines = item ? details(view, item, shownMessage).flatMap(text => wrapAnsi(text, Math.max(10, detailWidth - 8), {hard: true, trim: false}).split('\n')) : [];
   const detailRows = bodyHeight - 7;
@@ -339,7 +344,7 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
   const error = actionError || data.error || collectionError;
   const helpLines = [
     ...(onAccounts ? ['A           Accounts, login, logout, and authentication setup'] : []),
-    '1 / 2 / 3   Mail / Calendar / Tasks', '4 / 5       People / Drive', 'Tab         Switch between navigation, list, and reader', 'h / l       Focus the previous / next pane', 'j / k       Move through rows or scroll the reader', 'Enter       Open an item; choose a mailbox, calendar, or task list', '/           Search (Gmail query syntax in live mail)', 'Esc         Back; clear an active search', 'g           Reload using the configured cache TTL', 'f           Force refresh, bypassing the cache', 'n           Compose mail, create an event, or create a task', '', 'Mail: v attachments · u read/unread · s star · a archive · r reply', 'Calendar: d choose date · t today · [ / ] previous/next week', 'Tasks: Space complete / reopen', 'People: / searches names, email, phone, and contact details', 'Drive: Enter opens folders · Backspace goes up · d downloads', 'Drive search matches file contents inside the current collection.', '', 'Forms: Tab fields · Ctrl+S review · Enter save after review', 'Message body: Enter adds a new line', 'q or Ctrl+C quits; Esc closes this help', '', 'Loads up to 40 messages; 200 events, tasks, or Drive files.', 'People loads all contacts in the selected collection.', 'Calendar agenda covers seven days in your local timezone.',
+    '1 / 2 / 3   Mail / Calendar / Tasks', '4 / 5       People / Drive', 'Tab         Switch between navigation, list, and reader', 'h / l       Focus the previous / next pane', 'j / k       Move through rows or scroll the reader', 'Enter       Open an item; choose a mailbox, calendar, or task list', microsoft ? '/           Search with Joom Outlook filters' : '/           Search (Gmail query syntax in live mail)', 'Esc         Back; clear an active search', 'g           Reload using the configured cache TTL', 'f           Force refresh, bypassing the cache', 'n           Compose mail, create an event, or create a task', '', microsoft ? 'Mail: v attachments · u read/unread · s flag · r reply' : 'Mail: v attachments · u read/unread · s star · a archive · r reply', 'Calendar: d choose date · t today · [ / ] previous/next week', 'Tasks: Space complete / reopen', 'People: / searches names, email, phone, and contact details', 'Drive: Enter opens folders · Backspace goes up · d downloads', 'Drive search matches file contents inside the current collection.', '', 'Forms: Tab fields · Ctrl+S review · Enter save after review', 'Message body: Enter adds a new line', 'q or Ctrl+C quits; Esc closes this help', '', 'Loads up to 40 messages; 200 events, tasks, or Drive files.', 'People loads all contacts in the selected collection.', 'Calendar agenda covers seven days in your local timezone.', ...(microsoft ? ['Outlook: use All mail for full-text search with no read/flag filter.', 'Joom exposes Contacts and OneDrive folders, without Google-only collections.'] : []),
   ];
   const helpWrapped = helpLines.flatMap(text => wrapAnsi(text, Math.max(10, columns - 8), {hard: true, trim: false}).split('\n'));
   const helpPageRows = Math.max(1, bodyHeight - 4);
@@ -347,7 +352,7 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
   const helpOffset = Math.min(offset, helpMaxOffset);
   return <Box width={columns} height={rows - 1} flexDirection="column" backgroundColor={color.background}>
     <Box paddingX={1} height={2} alignItems="center">
-      <Text color={color.accent} bold>xoog</Text><Text color={color.muted}> / {viewTitle[view]}</Text>
+      <Text color={color.accent} bold>xoog</Text><Text color={color.muted}> / {api.backend ? `${backendInfo[api.backend].provider} ` : ''}{viewTitle[view]}</Text>
       <Box flexGrow={1}/><Text color={color.muted} wrap="truncate">{line(account)}</Text>
     </Box>
     <Box borderStyle="single" borderColor={color.border} height={3} paddingX={1}>
@@ -375,14 +380,14 @@ export function App({api, account, initialCalendar = 'primary', initialTasklist 
       {showDetail && !(pane === 'nav' && !hasNav) && <Box width={detailWidth} borderStyle="single" borderColor={pane === 'detail' ? color.accent : color.border} flexDirection="column" paddingX={2} overflow="hidden">
         {item ? <>
           <Text color={color.text} bold wrap="truncate">{itemTitle(view, item)}</Text>
-          <Text color={color.muted}>{view === 'mail' ? `${(item as Mail).unread ? 'Unread' : 'Read'}${(item as Mail).starred ? ' · Starred' : ''}` : view === 'calendar' ? 'Event details' : view === 'tasks' ? 'Task details' : view === 'people' ? 'Contact details' : 'File details'}</Text>
+          <Text color={color.muted}>{view === 'mail' ? `${(item as Mail).unread ? 'Unread' : 'Read'}${(item as Mail).starred ? microsoft ? ' · Flagged' : ' · Starred' : ''}` : view === 'calendar' ? 'Event details' : view === 'tasks' ? 'Task details' : view === 'people' ? 'Contact details' : 'File details'}</Text>
           <Box marginTop={1} flexGrow={1} flexDirection="column" overflow="hidden">
             <ScrollArea total={detailLines.length} visible={detailRows} offset={detailOffset} height={detailRows} active={pane === 'detail'}>
               <Text color={color.text}>{detailLines.slice(detailOffset, detailOffset + detailRows).join('\n')}</Text>
             </ScrollArea>
           </Box>
           <Text color={detail.error ? color.error : color.muted} wrap="truncate">{detail.id === item.id && detail.error ? detail.error : detail.id === item.id && detail.loading ? 'Loading message…' : detailLines.length > detailRows ? `${detailOffset + 1}-${Math.min(detailLines.length, detailOffset + detailRows)} / ${detailLines.length} lines · ${pane === 'detail' ? 'j/k scroll · Esc back' : 'Tab, then j/k'}` : ' '}</Text>
-          <Text color={color.muted} wrap="truncate">{view === 'mail' ? 'v attachments · r reply · u read/unread · s star · a archive' : view === 'tasks' ? 'Space complete / reopen' : view === 'calendar' ? 'd choose date · t today · n new event' : view === 'people' ? '/ find a contact' : 'Enter open folder · d download · Backspace up'}</Text>
+          <Text color={color.muted} wrap="truncate">{view === 'mail' ? microsoft ? 'v attachments · r reply · u read/unread · s flag' : 'v attachments · r reply · u read/unread · s star · a archive' : view === 'tasks' ? 'Space complete / reopen' : view === 'calendar' ? 'd choose date · t today · n new event' : view === 'people' ? '/ find a contact' : 'Enter open folder · d download · Backspace up'}</Text>
         </> : <Box marginTop={2} flexDirection="column"><Text bold color={color.text}>Choose {view === 'mail' ? 'a message' : view === 'calendar' ? 'an event' : view === 'tasks' ? 'a task' : view === 'people' ? 'a contact' : 'a file'}</Text><Text color={color.muted}>j/k moves through the list. Enter opens the reader.</Text></Box>}
       </Box>}
     </Box>}

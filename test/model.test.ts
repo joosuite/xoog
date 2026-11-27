@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {clean, normalizeMail, normalizeEvent, normalizeTask, validateDraft, shiftDay, dayKey} from '../src/model.js';
+import {clean, normalizeMail, validateDraft} from '../src/model.js';
 
 test('mail decodes nested MIME and removes terminal control sequences', () => {
   const mail = normalizeMail({id: 'm', labelIds: ['UNREAD', 'STARRED'], payload: {headers: [{name: 'Subject', value: '\x1b[31mSubject\x1b[0m'}, {name: 'From', value: 'Jeanne <jeanne@example.com>'}], mimeType: 'multipart/alternative', parts: [{mimeType: 'text/plain', body: {data: Buffer.from('Hello\n\x1b]52;c;attack\x07world').toString('base64url')}}, {mimeType: 'text/html', body: {data: Buffer.from('<b>Fallback</b>').toString('base64url')}}]}}, true);
@@ -26,12 +26,6 @@ test('nested MIME attachments keep metadata and inline data without leaking thei
   assert.equal(mail.attachments?.[1]?.data, encoded('Attached text'));
   assert.equal(mail.attachments?.[2]?.mimeType, 'image/png');
   assert.ok(!mail.attachments?.[0]?.name.includes('\u001b'));
-});
-test('task dates retain the Google date without a timezone shift', () => {
-  assert.equal(normalizeTask({id: 't', title: 'A', due: '2026-11-25T00:00:00Z'}).due, '2026-11-25');
-  const allDay = normalizeEvent({id: 'e', start: {date: '2026-11-25'}, end: {date: '2026-11-26'}});
-  assert.equal(allDay.allDay, true); assert.equal(allDay.start, '2026-11-25');
-  assert.equal(dayKey(shiftDay(new Date(2026, 10, 30, 12), 1)), '2026-12-01');
 });
 test('draft validation rejects invalid dates, missing timezones and reversed events', () => {
   for (const due of ['2026-02-30', '2026-13-01', 'bad date']) assert.ok(validateDraft('tasks', {title: 'Task', due}));

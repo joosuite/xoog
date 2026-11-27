@@ -7,8 +7,9 @@ import {fileURLToPath} from 'node:url';
 import {clean, line, normalizeMail, normalizeEvent, normalizeTask, normalizePerson, normalizeFile, driveDownload, shiftDay, type ReadOptions, type Workspace, type Mail, type Attachment, type MailDraft, type EventDraft, type TaskDraft, type DriveFile} from './model.js';
 import {authError} from './auth-error.js';
 import {copyNewFile, decodeAttachmentData, writeNewAttachment} from './attachment-files.js';
+import {backendInfo, type BackendId} from './backend.js';
 
-export type JoogOptions = {account: string; binary: string; home?: string; ttl?: number};
+export type JoogOptions = {account: string; binary: string; home?: string; ttl?: number; backend?: BackendId};
 type Raw = Record<string, any>;
 // Only commands that accept Joog's TTL option belong here. Writes and downloads
 // must keep their existing command parameters.
@@ -18,7 +19,7 @@ const cacheableReads = new Set([
   'contacts.other-contacts.list', 'drive.files.list',
 ]);
 
-export function parseJoogOutput(stdout: string, operation: string): Raw {
+export function parseBinaryOutput(stdout: string, operation: string): Raw {
   const text = stdout.trim();
   if (!text) return {};
   try {return JSON.parse(text);}
@@ -41,21 +42,23 @@ export function parseJoogOutput(stdout: string, operation: string): Raw {
   }
 }
 
-export async function findBinary(explicit?: string, searchPath = process.env.PATH ?? ''): Promise<string> {
+export async function findBinary(explicit?: string, searchPath = process.env.PATH ?? '', backend: BackendId = 'joog'): Promise<string> {
   if (explicit) return explicit;
-  const executable = process.platform === 'win32' ? 'joog.exe' : 'joog';
+  const executable = process.platform === 'win32' ? `${backend}.exe` : backend;
   for (const directory of searchPath.split(delimiter).filter(Boolean)) {
     const candidate = resolve(directory, executable);
     try {await access(candidate, process.platform === 'win32' ? constants.F_OK : constants.X_OK); if ((await stat(candidate)).isFile()) return candidate;} catch {}
   }
-  const local = resolve(dirname(fileURLToPath(import.meta.url)), '../..', 'joog/bin', executable);
-  try { await access(local); return local; } catch { return 'joog'; }
+  const local = resolve(dirname(fileURLToPath(import.meta.url)), '../..', backend, 'bin', executable);
+  try { await access(local); return local; } catch { return executable; }
 }
 export class Joog implements Workspace {
-  constructor(private readonly options: JoogOptions) {}
+  readonly backend: BackendId = 'joog';
+  constructor(protected readonly options: JoogOptions) {}
 
   async call(service: string, command: string, params: Raw = {}, signal?: AbortSignal, options?: ReadOptions): Promise<Raw> {
     signal?.throwIfAborted();
+    const backend = this.options.backend ?? this.backend, info = backendInfo[backend];
     // Request files keep message bodies and other private content out of process arguments.
     const directory = await mkdtemp(join(tmpdir(), 'xoog-'));
     try {
@@ -71,11 +74,11 @@ export class Joog implements Workspace {
             let detail = clean(stderr).trim();
             try { detail = clean(JSON.parse(stderr).error); } catch {}
             reject(new Error((error as NodeJS.ErrnoException).code === 'ENOENT'
-              ? 'Joog was not found. Install Joog or pass --joog /path/to/joog.'
-              : (/insufficient.*scopes|access_token_scope_insufficient|insufficientpermissions/i.test(detail) ? 'Google permissions are missing. Press A for Accounts, then L to log in again and authorize the requested services.' : authError(detail)) || `Joog ${command} failed or timed out.`));
+              ? `${info.name} was not found. Install ${info.name} or pass --${backend} /path/to/${backend}.`
+              : (/insufficient.*scopes|access_token_scope_insufficient|insufficientpermissions|Authorization_RequestDenied/i.test(detail) ? `${info.provider} permissions are missing. Press A for Accounts, then L to log in again and authorize the requested services.` : authError(detail, backend)) || `${info.name} ${command} failed or timed out.`));
             return;
           }
-          try {accept(parseJoogOutput(stdout, command));}
+          try {accept(parseBinaryOutput(stdout, command));}
           catch (cause) {reject(cause);}
         });
       });

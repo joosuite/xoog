@@ -1,11 +1,11 @@
 # <img src="assets/brand/logo.png" alt="Xoog" width="360">
 
-Mail, calendar, tasks, Google People, and Drive in a React terminal app. Xoog runs the **Joog executable**
-as a subprocess and reads its JSON output. Install Joog separately or point Xoog
-at an existing binary.
+Mail, calendar, tasks, contacts, and files in a React terminal app. Xoog runs
+**Joog** for Google and **Joom** for Microsoft as subprocesses and reads their JSON
+output. Install the backend you use separately or point Xoog at its binary.
 
 Xoog is an independent open-source project and is not affiliated with, endorsed
-by, or sponsored by Google. It is provided "as is" under the
+by, or sponsored by Google or Microsoft. It is provided "as is" under the
 [Apache License, Version 2.0](LICENSE).
 
 ![Xoog mail workspace showing synthetic messages for the fictitious account simon.delcourt@example.com](assets/screenshots/mail.png)
@@ -15,7 +15,7 @@ See [accounts, calendar, tasks, People, Drive, and terminal screenshots](docs/sc
 
 ## Run
 
-Use Node.js 22 or newer and install the Joog executable. From this directory:
+Use Node.js 22 or newer and install Joog for Google or Joom for Microsoft. From this directory:
 
 ```sh
 npm ci
@@ -26,17 +26,21 @@ npm start
 The [sign-in guide](docs/authentication.md) covers OAuth setup, enrollment,
 login, account switching, and logout.
 
-To choose the executable:
+To choose an executable or the initial provider:
 
 ```sh
 npm start -- --joog /path/to/joog
+npm start -- --backend joom --joom /path/to/joom
 ```
 
-Xoog checks `--joog`, then `JOOG_BIN`, then `joog` on your `PATH`, and finally
-the development binary at `../joog/bin/joog`. Xoog uses no Joog source files at
-runtime. Joog owns sign-in, token refresh, and encrypted credential storage.
+Xoog checks each explicit binary option, then `JOOG_BIN` or `JOOM_BIN`, then
+`PATH`, and finally its optional sibling development binary. `--joom PATH`
+selects Microsoft initially unless `--backend` chooses another provider.
+The backends own sign-in, token refresh, and encrypted credentials. Xoog imports
+neither backend's source code.
 
-Xoog gets the account list from `joog --json auth list` and always opens the
+Press `1` for Google or `2` for Microsoft on the account screen. Xoog gets the
+selected provider's accounts from its binary's `--json auth list` and opens the
 account screen, including when saved accounts exist.
 The first screen keeps Authentication on the left and all saved accounts with
 Account actions on the right. In narrow terminals, the authentication shortcuts
@@ -48,24 +52,31 @@ and `X` logs out the selected account after confirmation. `I` runs `auth init`,
 `Tab` and `Shift+Tab` switch between Authentication, the account list, and
 Account actions. Move with `j/k` or arrow keys, then press `Enter` to select.
 
-For enrollment, enter the client ID and secret for a Google **Desktop app**.
+For Google enrollment, enter the client ID and secret for a **Desktop app**.
 The secret is masked and passed to Joog over stdin. Login opens your browser
 to authorize mail, calendar, tasks, contacts, and Drive. `Esc` cancels an in-progress operation.
 Press `g` to refresh the saved accounts after a cancellation or external change.
 
-Press `A` in the workspace to return to account management and switch accounts.
-`--home PATH` uses a custom Joog state directory for both account management
+For Microsoft enrollment, enter only the Application client ID for a mobile
+and desktop app registration in Microsoft Entra. Register
+`http://localhost/oauth/callback`. Joom uses PKCE and requests no client secret.
+Login opens Microsoft authorization for Outlook, Calendar, To Do, Contacts, and
+OneDrive. The account email does not determine which provider to use.
+
+Press `A` in the workspace to return to account management and switch accounts
+or providers. The same email can have independent accounts in both backends.
+`--home PATH` uses custom backend state directories for account management
 and workspace requests. `--calendar ID` and `--tasklist ID` choose the initial collections.
 Use `--theme light` for a light background. The default theme is dark. Both
 themes set their background and text colors explicitly.
 
-Xoog reuses Joog's encrypted response cache for five minutes by default.
+Xoog reuses the selected backend's encrypted response cache for five minutes by default.
 Use `xoog --ttl 10` to set another lifetime in minutes, or `xoog --ttl 0` to
 disable caching. This applies to Mail, Calendar, Tasks, People, and Drive reads.
 Press `f` to force a refresh even before the TTL expires. `g` reloads using the
-configured TTL. Forced reads bypass Joog's cache for that refresh; subsequent
+configured TTL. Forced reads bypass that cache for that refresh; subsequent
 reads use the configured TTL again. Writes and file downloads bypass
-the response cache; Joog invalidates cached responses when data changes through
+the response cache; the backend invalidates cached responses when data changes through
 its write commands.
 
 To install the `xoog` command locally:
@@ -120,7 +131,15 @@ with `A`, press `L`, and log in again to grant them. You can keep the existing
 OAuth client enrollment. Enable the People API and Drive API in that client's
 Google Cloud project if Google reports either API as disabled.
 
-In mail, `u` toggles read status, `s` toggles the star, `a` archives, and `r`
+For Microsoft, all five tabs use Joom. Contacts has one collection, and Drive
+browses and searches OneDrive folders. Office files download in their original
+formats. Xoog omits Google's Starred/Other contacts, Recent/Starred/Shared drive
+collections, and Outlook archive because Joom does not expose those operations.
+The mail star action maps to an Outlook flag. Use All mail for full-text searches;
+Joom rejects combinations of full-text search and read/flag filters. Replies send
+MIME reply headers without forcing an Outlook conversation ID.
+
+In Google mail, `u` toggles read status, `s` toggles the star, `a` archives, and `r`
 replies. Opening a message with `Enter` marks it as read. Merely selecting a
 message for preview leaves its read status unchanged. Search supports Gmail
 query syntax.

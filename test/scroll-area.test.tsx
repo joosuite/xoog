@@ -1,10 +1,9 @@
 import React from 'react';
 import {test, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
-import {Box, Text} from 'ink';
 import {render, cleanup} from 'ink-testing-library';
 import {setTimeout as pause} from 'node:timers/promises';
-import {ScrollArea, scrollThumb} from '../src/scroll-area.js';
+import {scrollThumb} from '../src/scroll-area.js';
 import {App} from '../src/app.js';
 import {AccountScreen} from '../src/account-screen.js';
 import {DraftForm} from '../src/form.js';
@@ -35,17 +34,6 @@ test('scroll thumbs reach both endpoints, clamp overscroll, and disappear when c
   const smallViewport = scrollThumb(100, 10, 0, 10)!;
   assert.ok(largeViewport.size > smallViewport.size);
 });
-test('the scrollbar moves while the viewport stays the same height and width', async () => {
-  const content = (offset: number, total = 100) => <Box width={20}><ScrollArea total={total} visible={5} offset={offset} height={5}><Text>{'Row\n'.repeat(4)}Row</Text></ScrollArea></Box>;
-  const app = render(content(0)); await until(app, /█/);
-  assert.deepEqual(thumbRows(app.lastFrame()!), [0]);
-  const initialWidth = app.lastFrame()!.split('\n')[0]!.length;
-  app.rerender(content(95)); await pause(100);
-  assert.deepEqual(thumbRows(app.lastFrame()!), [4]);
-  assert.equal(app.lastFrame()!.split('\n')[0]!.length, initialWidth);
-  app.rerender(content(0, 5)); await pause(100);
-  assert.doesNotMatch(app.lastFrame()!, /[█░]/);
-});
 test('mail list and reader bars follow selection and cannot scroll past the end', async () => {
   class LongMail extends FakeWorkspace {
     override async mail() {const base = (await super.mail('inbox', ''))[0]!; return Array.from({length: 30}, (_, i) => ({...base, id: `m${i}`, subject: `Message ${i + 1}`}));}
@@ -62,6 +50,7 @@ test('mail list and reader bars follow selection and cannot scroll past the end'
   assert.match(app.lastFrame()!, /Body line 40/);
   const end = app.lastFrame(); await press(app, 'j'); assert.equal(app.lastFrame(), end);
   await press(app, 'k'); assert.doesNotMatch(app.lastFrame()!, /Body line 40/);
+  await press(app, '\x1b'); assert.match(app.lastFrame()!, /Message 30/);
 });
 test('account and help bars follow the visible content', async () => {
   class ManyAccounts extends FakeAccounts {

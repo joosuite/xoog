@@ -9,84 +9,120 @@
       "columns": 120,
       "rows": 30,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 120x30 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 120x30 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "mail.png",
       "columns": 140,
       "rows": 36,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 140x36 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "calendar.png",
       "columns": 140,
       "rows": 36,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 140x36 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "date-picker.png",
       "columns": 140,
       "rows": 36,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 140x36 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "people.png",
       "columns": 140,
       "rows": 36,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 140x36 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "drive.png",
       "columns": 140,
       "rows": 36,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 140x36 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "tasks.png",
       "columns": 140,
       "rows": 36,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 140x36 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "mail-light.png",
       "columns": 140,
       "rows": 36,
       "theme": "light",
-      "source": "Actual Xoog React/Ink output captured in a 140x36 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "mail-narrow.png",
       "columns": 70,
       "rows": 24,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 70x24 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 70x24 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "attachments.png",
       "columns": 120,
       "rows": 30,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 120x30 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 120x30 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "attachment-text.png",
       "columns": 120,
       "rows": 30,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 120x30 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 120x30 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     },
     {
       "file": "attachment-save.png",
       "columns": 70,
       "rows": 24,
       "theme": "dark",
-      "source": "Actual Xoog React/Ink output captured in a 70x24 pseudoterminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.mjs and scripts/capture-screenshots.py. Not an imagegen mockup."
+      "backend": "joog",
+      "source": "Actual Xoog React/Ink output captured in a 70x24 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
+    },
+    {
+      "file": "microsoft-accounts.png",
+      "columns": 120,
+      "rows": 30,
+      "theme": "dark",
+      "backend": "joom",
+      "source": "Actual Xoog React/Ink output captured in a 120x30 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
+    },
+    {
+      "file": "microsoft-mail.png",
+      "columns": 140,
+      "rows": 36,
+      "theme": "dark",
+      "backend": "joom",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
+    },
+    {
+      "file": "microsoft-drive.png",
+      "columns": 140,
+      "rows": 36,
+      "theme": "dark",
+      "backend": "joom",
+      "source": "Actual Xoog React/Ink output captured in a 140x36 virtual terminal. Fictitious Google account simon.delcourt@example.com. All content is synthetic. Source: scripts/screenshot-preview.tsx and scripts/capture-screenshots.tsx. No Google connection or generated image."
     }
   ]
 }

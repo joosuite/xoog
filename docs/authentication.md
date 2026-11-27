@@ -69,3 +69,26 @@ saved accounts. For a missing executable, install Joog or select it with `--joog
 For accounts authorized before People and Drive were added, use Login again
 to grant the new permissions. Reuse the existing OAuth client enrollment.
 The Google Cloud project must have the People API and Drive API enabled.
+
+## Microsoft accounts
+
+On the account screen, press `2` to select Microsoft. Press `1` to return to Google.
+Each provider lists its accounts through its binary's `auth list` command.
+Start with `npm start -- --backend joom`, or pass `--joom PATH` for a custom binary.
+Account selection stays inside Xoog.
+
+Use `I` to initialize Joom's vault, then `E` to enter the Microsoft Application
+client ID. Register a mobile and desktop app in Microsoft Entra with the loopback
+callback `http://localhost/oauth/callback`. Configure supported account types to
+match the accounts you intend to use. No client secret is requested or sent.
+
+`T` checks Microsoft's OAuth endpoint reachability. It does not verify the app
+registration or prove that login will succeed. `L` opens Microsoft login for mail,
+calendar, tasks, contacts, and OneDrive. Complete the browser flow and select the
+account in Xoog. `X` logs out only that provider's selected account. `A` returns
+from the workspace to account management.
+
+The email domain does not select a provider. A Microsoft account can use a Gmail
+address. Both providers can have independent entries for the same email.
+`--home PATH` is forwarded to each backend, which stores its state in `PATH/joog`
+or `PATH/joom`.

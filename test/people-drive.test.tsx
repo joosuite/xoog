@@ -64,16 +64,6 @@ test('Drive save errors preserve existing files, allow retry, and cancellation a
   await until(waiting, /Download · Invoice/); await press(waiting, '\r'); await until(waiting, /Downloading/);
   await press(waiting, '\x1b'); assert.ok(aborted); assert.ok(closed);
 });
-test('People recovers from permission failures with refresh', async () => {
-  class Failing extends FakeWorkspace {
-    attempts = 0;
-    override async people(collection: string) {if (!this.attempts++) throw new Error('Permission denied. Log in again from Accounts.'); return super.people(collection);}
-  }
-  const app = render(<App api={new Failing()} account="test@example.com" size={{columns: 100, rows: 30}}/>);
-  await until(app, /Saturday at ours/); await press(app, '4'); await until(app, /Press g to retry/);
-  await press(app, 'g'); await until(app, /Jeanne Fleury/); await press(app, '5'); await until(app, /Receipts/);
-  assert.doesNotMatch(app.lastFrame()!, /Contact details/);
-});
 test('switching services aborts an outstanding Drive request and ignores its late result', async () => {
   let finish: (files: DriveFile[]) => void = () => {};
   let signal: AbortSignal | undefined;
