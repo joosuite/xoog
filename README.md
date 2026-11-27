@@ -13,21 +13,49 @@ by, or sponsored by Google or Microsoft. It is provided "as is" under the
 The screenshots use a fictitious Google account and synthetic content.
 See [accounts, calendar, tasks, People, Drive, and terminal screenshots](docs/screenshots.md).
 
-## Run
+## Install and run
 
-Download a [binary release](https://github.com/joosuite/xoog/releases) for your
-operating system and architecture. Choose `with-backends` to include Joog and
-Joom. Both editions contain a standalone executable. No separate runtime installation is needed.
+| Distribution | Separate Node.js installation | Joog and Joom |
+| --- | --- | --- |
+| GitHub binary, Xoog only | Not needed | Install the backend you use |
+| GitHub binary, `with-backends` | Not needed | Both included |
+| npm package, planned | Node.js 22 or newer | Install the backend you use |
+
+### Binary downloads
+
+Download a [binary release](https://github.com/joosuite/xoog/releases/latest) for
+your computer. Both editions are available for these platforms:
+
+| Platform | Architecture | Filename ending |
+| --- | --- | --- |
+| macOS | Apple Silicon | `darwin-arm64.tar.gz` |
+| macOS | Intel | `darwin-x64.tar.gz` |
+| Linux with glibc | x64 | `linux-x64.tar.gz` |
+| Linux with glibc | ARM64 | `linux-arm64.tar.gz` |
+| Windows | x64 | `win32-x64.zip` |
+
+Choose an archive with `with-backends` in its name to include Joog and Joom.
 Extract the entire archive, then run `./xoog` on macOS or Linux, or
-`.\xoog.exe` on Windows.
+`.\xoog.exe` on Windows. Keep the included backend binaries beside Xoog.
 See [installation and checksums](docs/releases.md).
 
-Binary releases are available for macOS Intel and Apple Silicon, Linux x64 and
-ARM64 with glibc, and Windows x64, with or without Joog and Joom included.
+### npm
 
-To run from source:
+A standalone `xoog` package is planned for npm. Once published, install and run
+it with Node.js 22 or newer:
 
-Use Node.js 22 or newer and install Joog for Google or Joom for Microsoft. From this directory:
+```sh
+npm install --global xoog
+xoog
+```
+
+The npm package contains Xoog only. Install [Joog](https://github.com/joosuite/joog)
+for Google or [Joom](https://github.com/joosuite/joom) for Microsoft separately
+and put the backend on `PATH`.
+
+### Run from source
+
+Use Node.js 22 or newer and install the backend you use. From this directory:
 
 ```sh
 npm ci
@@ -35,14 +63,25 @@ npm run build
 npm start
 ```
 
+To make the command available from a source checkout after building:
+
+```sh
+npm link
+xoog
+```
+
+Use `npm start -- <options>` to pass options when running from the checkout.
+
+## Accounts and settings
+
 The [sign-in guide](docs/authentication.md) covers OAuth setup, enrollment,
 login, account switching, and logout.
 
 To choose an executable or the initial provider:
 
 ```sh
-npm start -- --joog /path/to/joog
-npm start -- --backend joom --joom /path/to/joom
+xoog --joog /path/to/joog
+xoog --backend joom --joom /path/to/joom
 ```
 
 Xoog checks each explicit binary option, then `JOOG_BIN` or `JOOM_BIN`, then
@@ -90,13 +129,6 @@ configured TTL. Forced reads bypass that cache for that refresh; subsequent
 reads use the configured TTL again. Writes and file downloads bypass
 the response cache; the backend invalidates cached responses when data changes through
 its write commands.
-
-To install the `xoog` command locally:
-
-```sh
-npm link
-xoog
-```
 
 ## Use the workspace
 
