@@ -38,7 +38,7 @@ test('Microsoft enrollment saves one client ID without asking for a secret', asy
   const app = render(<AccountScreen auth={auth} onSelect={() => {}} size={{columns: 52, rows: 18}}/>);
   await until(app, /test@example.com/); await press(app, 'E'); await until(app, /Application client ID/);
   assert.doesNotMatch(app.lastFrame()!, /Client secret|Google Cloud/);
-  await press(app, 'app-registration-id'); await press(app, '\r'); await until(app, /OAuth client saved/);
+  await press(app, 'app-registration-id'); await press(app, '\r'); await until(app, /Sign-in setup saved/);
   assert.deepEqual(auth.credentials, ['app-registration-id', '']);
   assert.ok(app.lastFrame()!.split('\n').length <= 18);
 });

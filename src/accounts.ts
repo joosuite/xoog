@@ -9,7 +9,6 @@ export type LoginProgress = (stage: 'browser-opened') => void;
 export interface AccountManager {
   readonly backend?: BackendId;
   list(signal?: AbortSignal): Promise<AccountList>;
-  initialize(signal?: AbortSignal): Promise<void>;
   enroll(clientId: string, clientSecret: string, signal?: AbortSignal): Promise<void>;
   test(signal?: AbortSignal): Promise<void>;
   login(email: string, signal?: AbortSignal, progress?: LoginProgress): Promise<string>;
@@ -56,7 +55,6 @@ export class CliAccounts implements AccountManager {
       child.stdin?.end(input ?? '');
     });
   }
-  async initialize(signal?: AbortSignal) {await this.run(['init'], signal);}
   async enroll(clientId: string, clientSecret: string, signal?: AbortSignal) {await this.run(['enroll', '--stdin'], signal, JSON.stringify({client_id: clientId, ...(backendInfo[this.backend].secret ? {client_secret: clientSecret} : {})}));}
   async test(signal?: AbortSignal) {await this.run(['test'], signal);}
   async login(email: string, signal?: AbortSignal, progress?: LoginProgress) {

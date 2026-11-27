@@ -96,8 +96,8 @@ Account actions on the right. In narrow terminals, the authentication shortcuts
 sit above the account list. All actions stay visible without a setup submenu.
 
 Choose an account and press `Enter` to open its workspace. `L` opens login,
-and `X` logs out the selected account after confirmation. `I` runs `auth init`,
-`E` opens `auth enroll`, and `T` runs `auth test`. Shortcuts accept either case.
+and `X` logs out the selected account after confirmation. `E` opens sign-in setup,
+and `T` tests the connection. Shortcuts accept either case.
 `Tab` and `Shift+Tab` switch between Authentication, the account list, and
 Account actions. Move with `j/k` or arrow keys, then press `Enter` to select.
 

@@ -17,18 +17,17 @@ for Google setup and platform credential-store requirements.
 
 ## Set up authentication in Xoog
 
-1. Press `I` for **auth init** to initialize the local credential vault.
-2. Press `E` for **auth enroll**. Enter the client ID, press `Tab`, enter the
+1. Press `E` for **Set up sign-in**. Enter the client ID, press `Tab`, enter the
    client secret, then press `Enter` to save. The secret is masked.
-3. Press `T` for **auth test** to check the enrolled OAuth client.
-4. Press `L` for **Login / add account**, enter your Google account email, and
+2. Press `T` for **Test connection** to check the enrolled OAuth client.
+3. Press `L` for **Log in / add account**, enter your Google account email, and
    press `Enter`.
-5. Complete sign-in in the browser and approve the requested permissions for
+4. Complete sign-in in the browser and approve the requested permissions for
    mail, calendar, tasks, contacts, and Drive. Return to Xoog and press `Enter` to open the account.
 
 If Joog already has an enrolled client and saved accounts, select an account and
-press `Enter`. Initialization and enrollment are setup actions, not requirements
-on every launch. Xoog obtains the accounts by running `joog --json auth list`.
+press `Enter`. You only need setup when adding or changing your OAuth client.
+Xoog obtains the accounts by running `joog --json auth list`.
 `--home PATH` is forwarded to that command when you use a custom state directory.
 
 `Tab` moves between Authentication, All accounts, and Account actions. Use `j/k`
@@ -77,7 +76,7 @@ Each provider lists its accounts through its binary's `auth list` command.
 Start with `npm start -- --backend joom`, or pass `--joom PATH` for a custom binary.
 Account selection stays inside Xoog.
 
-Use `I` to initialize Joom's vault, then `E` to enter the Microsoft Application
+Press `E` for **Set up sign-in** and enter the Microsoft Application
 client ID. Register a mobile and desktop app in Microsoft Entra with the loopback
 callback `http://localhost/oauth/callback`. Configure supported account types to
 match the accounts you intend to use. No client secret is requested or sent.

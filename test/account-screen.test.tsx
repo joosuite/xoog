@@ -29,16 +29,15 @@ test('login returns a selected account and logout requires confirmation', async 
   await press(app, 'x'); await press(app, '\r');
   assert.ok(!(await auth.list()).accounts.includes('new@example.com')); assert.match(app.lastFrame()!, /Logged out/);
 });
-test('authentication setup initializes, masks credentials, enrolls, and tests the connection', async () => {
+test('sign-in setup masks credentials, enrolls directly, and tests the connection', async () => {
   class Auth extends FakeAccounts {
-    initialized = false; credentials: string[] = []; tested = false;
-    override async initialize() {this.initialized = true;}
+    credentials: string[] = []; tested = false;
     override async enroll(clientId: string, clientSecret: string) {this.credentials = [clientId, clientSecret];}
     override async test() {this.tested = true;}
   }
   const auth = new Auth();
   const app = render(<AccountScreen auth={auth} onSelect={() => {}} size={size}/>);
-  await until(app, /test@example.com/); await press(app, 'I'); assert.equal(auth.initialized, true);
+  await until(app, /test@example.com/); assert.doesNotMatch(app.lastFrame()!, /\[I\]|auth init/);
   await press(app, 'E'); await press(app, 'desktop-client'); await press(app, '\t'); await press(app, 'super-secret');
   assert.doesNotMatch(app.lastFrame()!, /super-secret/); assert.match(app.lastFrame()!, /\*{12}/);
   await press(app, '\r'); assert.deepEqual(auth.credentials.slice(0, 2), ['desktop-client', 'super-secret']);
@@ -75,11 +74,11 @@ test('login waits for the binary to confirm browser launch and shows complete er
   await press(app, '\x1b'); assert.match(app.lastFrame()!, /Cancelled/);
 });
 test('Tab and Enter navigate Authentication, All accounts, and Account actions', async () => {
-  class Auth extends FakeAccounts {initialized = false; override async initialize() {this.initialized = true;}}
-  const auth = new Auth(); let selected = '';
+  const auth = new FakeAccounts(); let selected = '';
   const app = render(<AccountScreen auth={auth} onSelect={value => selected = value} size={size}/>);
   await until(app, /test@example.com/);
-  await press(app, '\x1b[Z'); await press(app, '\r'); assert.equal(auth.initialized, true);
+  await press(app, '\x1b[Z'); await press(app, '\r'); assert.match(app.lastFrame()!, /Set up Google sign-in/);
+  await press(app, '\x1b');
   await press(app, '\t'); await press(app, '\t'); await press(app, 'j'); await press(app, '\r');
   assert.match(app.lastFrame()!, /Log in to Google/);
   await press(app, '\x1b'); await press(app, 'j'); await press(app, '\r');
@@ -92,7 +91,7 @@ test('global authentication actions and refresh preserve the selected account', 
   let selected = '';
   const app = render(<AccountScreen auth={new Auth()} onSelect={value => selected = value} size={size}/>);
   await until(app, /personal@example.com/); await press(app, 'j'); await press(app, 'T');
-  await until(app, /connection successful/); await press(app, 'G'); await until(app, /Accounts refreshed/);
+  await until(app, /Connection OK/); await press(app, 'G'); await until(app, /Accounts refreshed/);
   await press(app, '\t'); await press(app, '\r');
   assert.equal(selected, 'personal@example.com');
 });

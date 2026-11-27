@@ -30,8 +30,8 @@ Usage: xoog [options]
   --help, -h          Show help
   --version, -v       Show version
 
-The first screen manages accounts. I initializes the vault, E enrolls a client,
-T tests authentication, L logs in, and X logs out the selected account.
+The first screen manages accounts. E sets up sign-in, T tests the connection,
+L logs in, and X logs out the selected account.
 Press 1 for Google or 2 for Microsoft on the account screen.
 Press A in the workspace to return to accounts.
 

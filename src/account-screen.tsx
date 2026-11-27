@@ -87,10 +87,11 @@ export function AccountScreen({auth, size, onSelect, backends, onBackend}: {auth
     }
   }
   function runAuthentication(index: number) {
+    const action = authenticationActions[index];
+    if (!action) return;
     setPane('authentication'); setAuthenticationCursor(index); setError('');
-    if (index === 0) void perform('Initializing credential vault…', signal => auth.initialize(signal), 'Credential vault ready.', 'accounts');
-    if (index === 1) {setScreen('enroll'); setField(0); setClientId(''); setClientSecret(''); setNotice('');}
-    if (index === 2) void perform('Testing authentication connection…', signal => auth.test(signal), backend === 'joom' ? 'Microsoft OAuth endpoint reachable. App registration and sign-in were not verified.' : 'Google OAuth connection successful.', 'accounts');
+    if (action.id === 'enroll') {setScreen('enroll'); setField(0); setClientId(''); setClientSecret(''); setNotice('');}
+    if (action.id === 'test') void perform('Testing connection…', signal => auth.test(signal), 'Connection OK. Press L to log in.', 'accounts');
   }
   function openLogin() {setScreen('login'); setEmail(''); setError(''); setNotice('');}
   function beginLogout() {
@@ -109,7 +110,7 @@ export function AccountScreen({auth, size, onSelect, backends, onBackend}: {auth
       if (!clientId.trim() || info.secret && !clientSecret.trim()) {setError(info.secret ? 'Enter both the client ID and client secret.' : 'Enter the Application client ID.'); return;}
       const id = clientId.trim(), secret = clientSecret.trim();
       setClientSecret('');
-      void perform('Saving OAuth client credentials…', signal => auth.enroll(id, secret, signal), 'OAuth client saved. Press L to log in.', 'accounts');
+      void perform('Saving sign-in setup…', signal => auth.enroll(id, secret, signal), 'Sign-in setup saved. Press L to log in.', 'accounts');
     } else if (screen === 'logout') {
       void perform('Logging out…', signal => auth.logout(logoutAccount, signal), `Logged out ${logoutAccount}.`, 'accounts');
     }
@@ -149,9 +150,8 @@ export function AccountScreen({auth, size, onSelect, backends, onBackend}: {auth
       else setCursor(v => Math.max(0, Math.min(snapshot.accounts.length - 1, v + direction * (key.pageDown || key.pageUp ? accountHubLayout(columns, bodyHeight).pageSize : 1))));
       setError(''); return;
     }
-    if (shortcut === 'i') {runAuthentication(0); return;}
-    if (shortcut === 'e') {runAuthentication(1); return;}
-    if (shortcut === 't') {runAuthentication(2); return;}
+    if (shortcut === 'e') {runAuthentication(0); return;}
+    if (shortcut === 't') {runAuthentication(1); return;}
     if (shortcut === 'l') {openLogin(); return;}
     if (loading) return;
     if (shortcut === 'x') {beginLogout(); return;}
@@ -175,21 +175,21 @@ export function AccountScreen({auth, size, onSelect, backends, onBackend}: {auth
     <Box height={2} flexDirection="column"><Box height={1} paddingX={1}><Text bold color={color.accent}>xoog</Text><Text color={color.muted}> / accounts</Text><Box flexGrow={1}/>{backends?.map((id, index) => <Text key={id} color={id === backend ? color.selectedText : color.muted} backgroundColor={id === backend ? color.selection : undefined}>{` ${index + 1} ${backendInfo[id].provider} `}</Text>)}</Box><Text color={color.border}>{'─'.repeat(columns)}</Text></Box>
     {screen === 'accounts' && !busy && !error ? <AccountHub columns={columns} height={bodyHeight} accounts={snapshot.accounts} loading={loading} cursor={cursor}
       pane={pane} authenticationCursor={authenticationCursor} actionCursor={actionCursor}/> : <Box height={bodyHeight} borderStyle="single" borderColor={color.border} paddingX={2} flexDirection="column" overflow="hidden">
-      <Text bold color={color.text}>{screen === 'accounts' ? 'Authentication' : screen === 'login' ? `Log in to ${info.provider}` : screen === 'enroll' ? 'OAuth client credentials' : 'Log out of this account?'}</Text>
+      <Text bold color={color.text}>{screen === 'accounts' ? 'Authentication' : screen === 'login' ? `Log in to ${info.provider}` : screen === 'enroll' ? `Set up ${info.provider} sign-in` : 'Log out of this account?'}</Text>
       <Box marginTop={1} flexDirection="column" flexGrow={1} overflow="hidden">
         {busy ? <><Text bold color={color.accent}>{busy}</Text><Box marginTop={1}><Text color={color.muted}>{process.platform === 'darwin' && screen === 'login' && busy === `Starting ${info.provider} sign-in…` ? 'Check for a macOS Keychain approval prompt. Esc cancels.' : 'Esc cancels.'}</Text></Box></> : error ? <ScrollArea total={errorLines.length} visible={errorRows} offset={errorScroll} height={errorRows} active>
           <Text color={color.error}>{errorLines.slice(errorScroll, errorScroll + errorRows).join('\n')}</Text>
         </ScrollArea> : screen === 'login' ? <>
-          <Text color={color.muted}>{`Enter your ${info.provider} account email. ${info.name} opens your browser to authorize mail, calendar, tasks, contacts, and ${backend === 'joom' ? 'OneDrive' : 'Drive'}.`}</Text>
+          <Text color={color.muted}>{`Enter your ${info.provider} email. Press Enter to continue in your browser.`}</Text>
           <Box marginTop={1}><Text color={color.accent}>Email</Text></Box><Box height={2} overflow="hidden"><Input value={email} width={columns - 6} onChange={setEmail}/></Box>
-          <Text color={color.muted}>Need a client ID first? Esc, then E opens enrollment.</Text>
+          <Text color={color.muted}>First time? Press Esc, then E to set up sign-in.</Text>
         </> : screen === 'enroll' ? <>
-          <Text color={color.muted}>{info.secret ? 'Use OAuth credentials for a Desktop app from Google Cloud Console. Saving replaces the shared OAuth client.' : 'Use the Application client ID from Microsoft Entra. Register a mobile and desktop application with http://localhost/oauth/callback.'}</Text>
+          <Text color={color.muted}>{info.secret ? 'Google Cloud Console: create a Desktop app OAuth client. Copy its ID and secret.' : 'Copy the Application client ID from Microsoft Entra.'}</Text>
           <Box marginTop={1}><Text color={color.accent}>{field === 0 ? info.secret ? 'Client ID' : 'Application client ID' : 'Client secret'}{info.secret ? ` · ${field + 1}/2` : ''}</Text></Box>
           <Box height={2} overflow="hidden"><Input key={field} value={field === 0 ? clientId : clientSecret} width={columns - 6} masked={field === 1} onChange={field === 0 ? setClientId : setClientSecret}/></Box>
-          <Text color={color.muted}>{info.secret ? 'The client secret is masked and sent to Joog over stdin.' : 'Joom uses a public client with PKCE. Enter saves the client ID.'}</Text>
+          <Text color={color.muted}>{info.secret ? field === 0 ? 'Paste the client ID, then press Enter.' : 'Saving replaces the client for all Google accounts.' : 'Register http://localhost/oauth/callback as a Mobile and desktop redirect URI.'}</Text>
         </> : <>
-          <Text bold color={color.text}>{logoutAccount}</Text><Box marginTop={1}><Text color={color.muted}>{`This removes the account's local ${info.name} tokens. ${info.provider} permissions remain until you revoke them in your account settings.`}</Text></Box>
+          <Text bold color={color.text}>{logoutAccount}</Text><Box marginTop={1}><Text color={color.muted}>You will need to log in again to use this account in Xoog.</Text></Box>
         </>}
       </Box>
       <Text>{' '}</Text>

@@ -80,10 +80,10 @@ test('Joom writes, MIME replies, attachments, and original OneDrive downloads av
   await assert.rejects(client.people('other'), /Contacts collection/);
   await assert.rejects(client.files('shared', undefined, ''), /OneDrive folders/);
 });
-test('Microsoft account commands list, initialize, enroll only the client ID, test, login, and logout through Joom', {skip: process.platform === 'win32'}, async t => {
+test('Microsoft account commands list, enroll only the client ID, test, login, and logout through Joom', {skip: process.platform === 'win32'}, async t => {
   const {auth, calls} = await fixture(t);
   assert.deepEqual(await auth.list(), {accounts: ['simon.delcourt@example.com']});
-  await auth.initialize(); await auth.enroll('application-id', 'must-not-be-sent'); await auth.test();
+  await auth.enroll('application-id', 'must-not-be-sent'); await auth.test();
   const stages: string[] = [];
   assert.equal(await auth.login('simon.delcourt@example.com', undefined, stage => stages.push(stage)), 'simon.delcourt@example.com');
   await auth.logout('simon.delcourt@example.com');

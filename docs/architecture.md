@@ -53,7 +53,6 @@ the selection changes.
 | Workflow | Joog command |
 | --- | --- |
 | List accounts | `auth list` |
-| Initialize vault | `auth init` |
 | Enroll OAuth client | `auth enroll --stdin` |
 | Check OAuth connectivity | `auth test` |
 | Login and logout | `auth ACCOUNT login mail,calendar,tasks,contacts,drive`, `auth ACCOUNT logout` |
@@ -88,13 +87,13 @@ before another account can open.
 
 `src/account-hub.tsx` renders the approved account hub. At 90 columns or more,
 Authentication occupies 36% of the width on the left. The right pane contains
-only saved accounts, followed by Account actions. At smaller widths, the three
+only saved accounts, followed by Account actions. At smaller widths, the two
 authentication shortcuts sit in a compact row above the accounts and actions.
 There is no setup submenu or repeated selected-account summary.
 
 The controller keeps independent cursors for Authentication, accounts, and
 Account actions. Tab changes focus and Enter activates the focused choice.
-Direct I/E/T/L/X shortcuts work from the hub. Global authentication actions and
+Direct E/T/L/X shortcuts work from the hub. Global authentication actions and
 refresh preserve the selected account. Login selects its returned account;
 logout chooses an adjacent remaining account. Account rows and their scrollbars
 use the available height after reserving the always-visible action controls.
@@ -106,9 +105,10 @@ and preserves their order. The first account is initially selected. Login and
 logout refresh the list through the same command. `--home PATH` is forwarded
 to Joog. Xoog does not read Joog's configuration files or search state directories.
 Account discovery shares authentication subprocess error handling and cancellation.
-Vault initialization, OAuth enrollment, and connectivity checks also use the
-binary. Client credentials travel over stdin and are excluded from process
-arguments and temporary files. Credential enrollment errors use a generic
+OAuth enrollment and connectivity checks also use the binary. Joog and Joom
+initialize their credential storage automatically during enrollment; Xoog has
+no separate initialization action. Client credentials travel over stdin and are
+excluded from process arguments and temporary files. Credential enrollment errors use a generic
 message to avoid echoing input. The UI masks and clears the client secret.
 
 Authentication subprocesses time out after 40 seconds, except login, which gets

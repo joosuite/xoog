@@ -56,12 +56,12 @@ let input=''; process.stdin.on('data', s => input += s); process.stdin.on('end',
  console.log(JSON.stringify(args.includes('login') ? {account:args[args.indexOf('auth')+1]} : {}));
 });`, {mode: 0o700});
   const auth = new CliAccounts({binary, home: directory});
-  await auth.initialize(); await auth.enroll('desktop-client', 'private-client-secret'); await auth.test();
+  await auth.enroll('desktop-client', 'private-client-secret'); await auth.test();
   assert.equal(await auth.login('me@example.com'), 'me@example.com');
   await auth.logout('me@example.com');
   const calls = (await readFile(log, 'utf8')).trim().split('\n').map(s => JSON.parse(s));
-  assert.deepEqual(calls.map(c => c.args.slice(c.args.indexOf('auth') + 1)), [['init'], ['enroll','--stdin'], ['test'], ['me@example.com','login','mail,calendar,tasks,contacts,drive'], ['me@example.com','logout']]);
-  assert.deepEqual(JSON.parse(calls[1].input), {client_id: 'desktop-client', client_secret: 'private-client-secret'});
+  assert.deepEqual(calls.map(c => c.args.slice(c.args.indexOf('auth') + 1)), [['enroll','--stdin'], ['test'], ['me@example.com','login','mail,calendar,tasks,contacts,drive'], ['me@example.com','logout']]);
+  assert.deepEqual(JSON.parse(calls[0].input), {client_id: 'desktop-client', client_secret: 'private-client-secret'});
   assert.ok(calls.every(c => !c.args.join(' ').includes('private-client-secret') && c.args.includes(directory)));
   await assert.rejects(auth.login('fail@example.com'), /^Error: Google denied sign-in\.$/);
   await assert.rejects(auth.login('keychain@example.com'), /does not require enrolling/);

@@ -14,14 +14,13 @@ import {cellWordmark, cellWordmarkWidth, cellWordmarkHeight} from './brand.js';
 
 export type AccountPane = 'authentication' | 'accounts' | 'actions';
 export const authenticationActions = [
-  {id: 'init', key: 'I', label: 'auth init', description: 'Initialize credential vault'},
-  {id: 'enroll', key: 'E', label: 'auth enroll', description: 'Save OAuth client credentials'},
-  {id: 'test', key: 'T', label: 'auth test', description: 'Test authentication connection'},
+  {id: 'enroll', key: 'E', label: 'Set up sign-in', description: 'Add your app\'s client ID.'},
+  {id: 'test', key: 'T', label: 'Test connection', description: 'Check the sign-in service.'},
 ] as const;
 export const accountActions = [
   {id: 'open', key: 'Enter', label: 'Open workspace'},
-  {id: 'login', key: 'L', label: 'Login / add account'},
-  {id: 'logout', key: 'X', label: 'Logout selected account'},
+  {id: 'login', key: 'L', label: 'Log in / add account'},
+  {id: 'logout', key: 'X', label: 'Log out selected account'},
 ] as const;
 
 export function accountHubLayout(columns: number, height: number) {
@@ -49,7 +48,7 @@ export function AccountHub({columns, height, accounts, loading, cursor, pane, au
       marginRight={layout.wide ? 1 : 0} borderStyle="single" borderColor={pane === 'authentication' ? color.accent : color.border} paddingX={1} flexDirection="column" overflow="hidden">
       <Text bold color={color.text}>Authentication</Text>
       <Box marginTop={layout.wide ? 1 : 0} flexDirection={layout.wide ? 'column' : 'row'}>
-        {authenticationActions.map((action, index) => <Box key={action.id} flexDirection="column" marginBottom={layout.wide ? 1 : 0} marginRight={layout.wide || index === 2 ? 0 : 1} flexShrink={0}>
+        {authenticationActions.map((action, index) => <Box key={action.id} flexDirection="column" marginBottom={layout.wide ? 1 : 0} marginRight={layout.wide || index === authenticationActions.length - 1 ? 0 : 1} flexShrink={0}>
           <Text bold={pane === 'authentication' && authenticationCursor === index} color={pane === 'authentication' && authenticationCursor === index ? color.selectedText : color.text}
             backgroundColor={pane === 'authentication' && authenticationCursor === index ? color.selection : undefined}>[{action.key}] {action.label}</Text>
           {layout.wide && <Text color={color.muted} wrap="truncate">{action.description}</Text>}
@@ -61,11 +60,11 @@ export function AccountHub({columns, height, accounts, loading, cursor, pane, au
       borderColor={pane === 'accounts' || pane === 'actions' ? color.accent : color.border} paddingX={1} flexDirection="column" overflow="hidden">
       <Box height={1} flexShrink={0}><Text bold color={color.text}>All accounts</Text><Box flexGrow={1}/><Text color={color.muted}>{loading ? 'Loading…' : `${accounts.length} saved`}</Text></Box>
       {layout.tableRows > 0 && <Box height={2} flexShrink={0} flexDirection="column">
-        <Box><Text color={color.muted}>{'  '}Account</Text><Box flexGrow={1}/><Box width={statusWidth}><Text color={color.muted}>{statusWidth === 14 ? 'Local session' : 'Session'}</Text></Box><Box width={2}/></Box>
+        <Box><Text color={color.muted}>{'  '}Account</Text><Box flexGrow={1}/><Box width={statusWidth}><Text color={color.muted}>Status</Text></Box><Box width={2}/></Box>
         <Text color={color.border}>{rule}</Text>
       </Box>}
       <ScrollArea total={loading ? 0 : accounts.length} visible={layout.pageSize} offset={offset} height={layout.pageSize} active={pane === 'accounts'}>
-        {loading ? <Text color={color.muted}>Loading saved accounts…</Text> : !accounts.length ? <Text color={color.muted}>No saved accounts. Press L to log in.</Text> : accounts.slice(offset, offset + layout.pageSize).map((account, index) => {
+        {loading ? <Text color={color.muted}>Loading saved accounts…</Text> : !accounts.length ? <Text color={color.muted}>No saved accounts. E setup · L log in.</Text> : accounts.slice(offset, offset + layout.pageSize).map((account, index) => {
           const selected = index + offset === cursor;
           return <Box key={account} height={1} flexShrink={0} backgroundColor={selected ? color.selection : undefined}>
             <Text color={selected ? color.selectedText : color.text}>{selected ? '> ' : '  '}</Text>

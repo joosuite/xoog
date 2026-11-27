@@ -26,7 +26,7 @@ const date = (offset: number, hour: number, minute = 0) => {
 };
 const readOnly = async (): Promise<never> => {throw new Error('Screenshot data is read-only.');};
 const auth: AccountManager = {list: async () => ({accounts: [account], defaultAccount: account}),
-  initialize: readOnly, enroll: readOnly, test: readOnly, login: readOnly, logout: readOnly};
+  enroll: readOnly, test: readOnly, login: readOnly, logout: readOnly};
 
 function createWorkspace(backend: BackendId): Workspace {
   const mail = Object.entries(messages).map(([id, content], index) => ({
